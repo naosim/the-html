@@ -4,7 +4,10 @@
     background: #ffa;
     position: absolute;
     padding: 6px;
-  
+    white-space: pre-wrap;
+  }
+  .selected {
+    box-shadow: 0px 0px 6px #000;
   }
 </style>
 
@@ -14,7 +17,8 @@
 <h1>postit</h1>
 
 <div id="app">
-  <div class="postit" v-for="postit in postits" v-bind:style="{ left: postit.pos.x + 'px', top: postit.pos.y + 'px' }"  @mousedown="dragMouseDown($event, postit)">{{ postit.text }}</div>
+  <div v-for="postit in postits" v-bind:class="['postit', postit.selected ? 'selected' : '']" v-bind:style="{ left: postit.pos.x + 'px', top: postit.pos.y + 'px' }"  @mousedown="dragMouseDown($event, postit)" v-text="postit.text"></div>
+  <textarea v-model="editingPostit.text"></textarea>
 </div>
 
 <!-- <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 200 200">
@@ -25,29 +29,50 @@
 </svg> -->
 
 <script>
+const data = {
+  message: 'Hello Vue!',
+  dragPositions: {
+    clientX: undefined,
+    clientY: undefined,
+    movementX: 0,
+    movementY: 0
+  },
+  postits: [
+    {
+      id: "001",
+      text: "hoge",
+      pos: {x: 0, y: 100}
+    },
+    {
+      id: "002",
+      text: "foo",
+      pos: {x: 100, y: 0},
+      selected: false
+    }
+  ],
+  editingPostit: {
+    id: undefined,
+    text: ""
+  }
+};
+
+// function findPostit(id) {
+//   const list = data.postits.filter(v => v.id == data.editingPostit.id);
+//   return list.length == 1 ? list[0] : undefined;
+// }
+
 var app = new Vue({
   el: '#app',
-  data: {
-    message: 'Hello Vue!',
-    dragPositions: {
-      clientX: undefined,
-      clientY: undefined,
-      movementX: 0,
-      movementY: 0
-    },
-    postits: [
-      {
-        text: "hoge",
-        pos: {x: 0, y: 100}
-      },
-      {
-        text: "foo",
-        pos: {x: 100, y: 0}
-      }
-    ]
-  },
+  data: data,
   methods: {
     dragMouseDown: function (event, postit) {
+      if(this.editingPostit.id != postit.id) {
+        this.editingPostit.selected = false;// 前回の選択を外す
+      }
+      postit.selected = true;
+      this.editingPostit = postit;
+      
+
       event.preventDefault()
       // get the mouse cursor position at startup:
       this.dragPositions.clientX = event.clientX
