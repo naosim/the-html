@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<style>
+  .postit {
+    background: #ffa;
+    position: absolute;
+    padding: 6px;
+  
+  }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+
+
+<h1>postit</h1>
+
+<div id="app">
+  <div class="postit" v-for="postit in postits" v-bind:style="{ left: postit.pos.x + 'px', top: postit.pos.y + 'px' }"  @mousedown="dragMouseDown($event, postit)">{{ postit.text }}</div>
+</div>
+
+<!-- <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 200 200">
+  <style type="text/css">
+    .st0{fill:#7AC385;stroke:#356837;}
+  </style>
+  <circle class="st0" cx="100" cy="100" r="100"/>
+</svg> -->
+
+<script>
+var app = new Vue({
+  el: '#app',
+  data: {
+    message: 'Hello Vue!',
+    dragPositions: {
+      clientX: undefined,
+      clientY: undefined,
+      movementX: 0,
+      movementY: 0
+    },
+    postits: [
+      {
+        text: "hoge",
+        pos: {x: 0, y: 100}
+      },
+      {
+        text: "foo",
+        pos: {x: 100, y: 0}
+      }
+    ]
+  },
+  methods: {
+    dragMouseDown: function (event, postit) {
+      event.preventDefault()
+      // get the mouse cursor position at startup:
+      this.dragPositions.clientX = event.clientX
+      this.dragPositions.clientY = event.clientY
+      document.onmousemove = (event) => this.elementDrag(event, postit);
+      document.onmouseup = (event) => this.closeDragElement(event, postit);
+    },
+    elementDrag: function (event, postit) {
+      event.preventDefault()
+      this.dragPositions.movementX = this.dragPositions.clientX - event.clientX
+      this.dragPositions.movementY = this.dragPositions.clientY - event.clientY
+      this.dragPositions.clientX = event.clientX
+      this.dragPositions.clientY = event.clientY
+      // set the element's new position:
+      postit.pos.x = (postit.pos.x - this.dragPositions.movementX);
+      postit.pos.y = (postit.pos.y - this.dragPositions.movementY);
+    },
+    closeDragElement () {
+      document.onmouseup = null
+      document.onmousemove = null
+    }
+  }
+})
+</script>
