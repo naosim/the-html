@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+
+
+<h1>ルビふり</h1>
+noteの形式でルビをふります。
+<h2>原文</h2>
+<textarea id="inputText">
+今回は「Processingをはじめよう」の1回目です。
+まずは画面に文字を表示するプログラムを書いて実行してみましょう。
+
+# プログラムを実行してみましょう
+次の手順に従ってプログラムを実行してみましょう。
+- Processingのアプリを起動する
+- つぎのコードを入力する
+  ```java
+  size(320, 240);
+  background(255);
+  fill(0);
+  text("Hello World", 100, 120);
+  ```
+- 実行ボタンをおしてプログラムを動かす
+画面に"Hello World"という文字が表示されたら成功！
+
+# 実験してみましょう
+値を変えたらどんなふうに変わるか実験してみましょう。
+
+## size()
+1行目のsize()はウィンドウの大きさを変える関数です。
+ためしにカッコの1つ目をsize(500, 240)に変えて実行してみましょう。
+するとウィンドウの幅が大きくなります。  
+
+またカッコの2つ目をsize(320, 600)に変えるとウィンドウの高さが大きくなります。
+
+## background()
+2行目のbackground()はウィンドウ全体を色でぬりつぶす関数です。
+background(255)の255は白という意味です。
+ためしにbackground(0)に値を変えて実行してみましょう。
+ウィンドウの色が黒くなりましたね。
+
+また値をbackground(100)のようにすると黒と白の間の灰色になります。
+background()は値によって赤や緑などの色で塗ることもできますが、まずは「background(255)は白で塗りつぶすということだ」と覚えておこう。
+
+## fill()
+3行目のfill()はぬりつぶす色を指定する関数です。
+ここでは4行目で"Hello World"という文字を表示していますが、この色を黒にしています。
+色の考え方はさきほどのbackgroundと同じです。
+ためしにfill(200)にして実行すると文字の色が灰色になりますね。
+
+## text()
+4行目のtext()は文字を表示する関数です。
+ここでは"Hello World"という文字をx座標が100、y座標が120の位置に表示しています。
+ためにし x座標を200に変えてtext("Hello World", 200, 120)にして実行してみましょう。すると先ほどよりも文字が右に移動しましたね。
+つぎにy座標を200に変えてtext("Hello World", 200, 200)にして実行してみましょう。すると先ほどよりも文字が下へ移動しました。
+
+ここでScratchとProcessingで違いがあるので注意しましょう。
+Scratchではyを大きな値にするとキャラクターが画面の上に移動しましたが、Processingでは下へ移動します。逆にyを小さな値にするとScratchでは下に移動しましたが、Processingでは上に移動します。つまりyの値がScratchとProcessingでは逆になります。
+になみにxの値はScratchと同じです。
+
+また、他にも違うところがあります。
+たとえばx, yをそれぞれ10に変えてtext("Hello World", 10, 10)にして実行してみましょう。
+すると文字がウィンドウの左上の方に表示されました。
+これもScratchと違うところです。
+Scratchではx, yがゼロに近づくとキャラクタが画面の真ん中に移動しますが、Processingでは左上に移動します。
+
+# いろいろ遊んでみよう
+値を変えたり増やしたりして遊んでみましょう。
+たとえばこんな感じにするとどうなるでしょう？
+```java
+size(320, 240);
+background(255);
+fill(0);
+text("Hello World", 100, 120);
+
+fill(100);
+text("Goodmorning", 10, 20);
+
+fill(200);
+text("Bye-bye", 200, 50);
+```
+いろんな位置にいろんな色のいろんな文字が表示されましたね。
+
+# まとめ
+今回は文字を表示するプログラムを書いて実行しました。
+プログラムにある値を少しずつ変えながら、関数がどんな意味なのかを勉強しました。
+値を変えた時に思った通りの動きをすると嬉しくなりますね。
+次回は文字をアニメーションさせます。
+
+# 補足：公式ドキュメントの説明
+今回学んだ関数についての公式ドキュメントの内容を載せています。
+英語の説明文はGoogle翻訳で翻訳したものを載せています。
+詳しい内容はリンク先を読みましょう。
+
+## size()
+> Defines the dimension of the display window in units of pixels
+
+表示ウィンドウの寸法をピクセル単位で定義します
+https://processing.org/reference/size_.html
+
+## background()
+> Sets the color used for the background of the Processing window
+
+処理ウィンドウの背景に使用される色を設定します
+https://processing.org/reference/background_.html
+
+## fill()
+> Sets the color used to fill shapes
+
+図形の塗りつぶしに使用する色を設定します
+https://processing.org/reference/fill_.html
+
+## text()
+> Draws text to the screen
+
+画面にテキストを描画します
+https://processing.org/reference/text_.html
+    
+</textarea><br />
+<button id="rubyButton">ルビをふる</button><br />
+<button id="deleteButton">ルビを消す（下から上）</button><br />
+<h2>ルビふり後</h2>
+<textarea id="outputText"></textarea><br>
+<h2>ルビがふれなかった漢字</h2>
+<textarea id="notFoundText"></textarea><br>
+
+<h2>よみがな</h2>
+<textarea id="rubyText">
+数列 すうれつ
+存知 ぞんぢ
+高校 こうこう
+数学 すうがく
+聞 き
+意味不明 いみふめい
+言 い
+言葉 ことば
+理論 りろん
+簡単 かんたん
+奥 おく
+深 ふか
+面白 おもしろ
+付 つ
+合 あ
+記事 きじ
+読 よ
+終 お
+世界 せかい
+見 み
+方 かた
+変 か
+今回 こんかい
+回目 かいめ
+画面 がめん
+文字 もじ
+表示 ひょうじ
+書 か
+実行 じっこう
+動 うご
+起動 きどう
+次 つぎ
+順番 じゅんばん
+入力 にゅうりょく
+成功 せいこう
+実験 じっけん
+値 あたい
+変 か
+大 おお
+関数 かんすう
+幅 はば
+高 たか
+全体 ぜんたい
+色 いろ
+白 しろ
+黒 くろ
+意味 いみ
+塗 ぬ
+灰色 はいいろ
+間 あいだ
+赤 あか
+青 あお
+緑 みどり
+覚 おぼ
+行目 ぎょうめ
+目 め
+指定 してい 
+考 かんが
+同 おな
+座標 ざひょう
+位置 いち
+先 さき
+右 みぎ
+移動 いどう
+下 した
+違 ちが
+注意 ちゅうい
+上 うえ
+逆 ぎゃく
+小 ちい
+他 ほか
+左上 ひだりうえ
+近 ちか
+真 ま
+中 なか
+遊 あそ
+増 ふ
+感 かん 
+勉強 べんきょう
+時 とき
+思 おも
+通 とお
+嬉 うれ
+次回 じかい
+公式 こうしき
+今回学 こんかいまな
+内容 ないよう
+載 の
+英語 えいご
+説明文 せつめいぶん
+翻訳 ほんやく
+手順 てじゅん
+従 したが
+補足 ほそく
+説明 せつめい
+寸法 すんぽう
+単位 たんい
+定義 ていぎ
+処理 しょり
+背景 はいけい
+使用 しよう
+設定 せってい
+図形 ずけい
+描画 びょうが
+小学生 しょうがくせい
+学習 がくしゅう
+入門講座 にゅうもんこうざ
+講座 こうざ
+完了 かんりょう
+動画 どうが
+落 お
+機能 きのう
+作 つく
+必要 ひつよう
+学 まな
+具体的 ぐたいてき
+画像 がぞう
+込 こ
+操作 そうさ
+当 あ
+判定 はんてい
+本文 ほんぶん
+漢字 かんじ
+振 ふ
+最終的 さいしゅうてき
+良 よ
+楽 たの
+全部終 ぜんぶお
+</textarea>
+
+<h2>英語の読み方</h2>
+<textarea id="rubyAlphabetText">
+  Processing プロセッシング
+  Scratch スクラッチ
+  y ワイ
+  x エックス
+  size サイズ
+  background バックグラウンド
+  fill フィル
+  text テキスト
+  java ジャバ
+  Hello ハロー
+  World ワールド
+  Google グーグル
+</textarea>
+
+
+
+
+<script>
+const regexp = /([\u{3005}\u{3007}\u{303b}\u{3400}-\u{9FFF}\u{F900}-\u{FAFF}\u{20000}-\u{2FFFF}][\u{E0100}-\u{E01EF}\u{FE00}-\u{FE02}]?)/mu;
+function isKanji(char) {
+  return regexp.test(char);
+}
+
+const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+function isAlphabet(char) {
+  return alphabet.indexOf(char) != -1;
+}
+
+document.querySelector("#rubyButton").addEventListener('click', () => {
+  const reduceFunc = (memo, v) => {
+    const ary = v.trim().split(" ");
+    memo[ary[0].trim()] = ary[ary.length - 1].trim();
+    return memo;
+  };
+  const rubyMap = document.querySelector("#rubyText").value.trim().split("\n").reduce(reduceFunc, {});
+  const rubyAlphabetMap = document.querySelector("#rubyAlphabetText").value.trim().split("\n").reduce(reduceFunc, {});
+
+  const text = document.querySelector("#inputText").value.trim();
+  // const kanjiFlags = text.split("").map(isKanji);
+
+
+  const notFoundMap = {};
+  var isInCodeBlock = false;
+  const segs = text.split("").reduce((memo, v, i) => {
+    if(v === "\`") {
+      isInCodeBlock = !isInCodeBlock;
+    }
+    // コードブロック内の場合は無視
+    const flag =  !isInCodeBlock && isKanji(v);
+    const flagAlphabet = !isInCodeBlock && isAlphabet(v);
+    if(memo.lastIsKanji && flag) {
+      memo.segs[memo.segs.length - 1].value += v;
+    } else if(memo.lastIsAlphabet && flagAlphabet) {
+      memo.segs[memo.segs.length - 1].value += v;
+    } else {
+      memo.segs.push({value: v, isKanji: flag, isAlphabet: flagAlphabet});
+      memo.lastIsKanji = flag;
+      memo.lastIsAlphabet = flagAlphabet;
+    }
+    return memo;
+  }, {segs: [], lastIsKanji: null, lastIsAlphabet: null}).segs;
+
+  const result = segs.map(v => {
+    if(!v.isKanji && !v.isAlphabet) {
+      return v.value;
+    }
+    if(v.isAlphabet && rubyAlphabetMap[v.value]) {
+      return `|${v.value}《${rubyAlphabetMap[v.value]}》`;
+    }
+    if(v.isKanji && rubyMap[v.value]) {
+      return `|${v.value}《${rubyMap[v.value]}》`;
+    }
+    notFoundMap[v.value] = true;
+    return `|${v.value}《？？》`;
+  }).join("");
+
+
+  document.querySelector("#outputText").value = result;
+  document.querySelector("#notFoundText").value = Object.keys(notFoundMap).map(v => v + " ").join("\n");
+
+
+})
+
+document.querySelector("#deleteButton").addEventListener('click', () => {
+  const text = document.querySelector("#outputText").value.trim();
+  const result = text.split("|").join("").split("《")
+    .map(v => {
+      if(v.indexOf("》") == -1) {
+        return v;
+      }
+      return v.split("》")[1]
+    }).join("")
+  document.querySelector("#inputText").value = result;
+
+})
+</script>
