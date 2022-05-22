@@ -68,6 +68,7 @@
       v-bind:x2="link.endPostit.center.x" 
       v-bind:y2="link.endPostit.center.y" 
       stroke="black"
+      stroke-width="2"
     />
     <g v-for="postit in postits" >
       <rect 
@@ -113,7 +114,9 @@
   ></textarea>
 
   <div class="right-toolbar">
-    <button id="deleteButton" v-on:click="deletePostit">付箋削除</button>
+    <button v-on:click="deletePostit">付箋削除</button><br>
+    <button v-on:click="outputText">テキスト出力</button><br>
+    <button v-on:click="createNewSheet">新規作成</button><br>
   </div>
 </div>
 
@@ -414,6 +417,47 @@ var app = new Vue({
       this.$data.editingPostit = dummyPostit;
       this.calcSize();
     },
+    clear: function() {
+      // 一気に消せるかも
+      for(let i = this.$data.postits.length - 1; i >= 0; i--) {
+        this.$data.postits.splice(i, 1)
+      }
+      for(let i = this.$data.links.length - 1; i >= 0; i--) {
+        this.$data.links.splice(i, 1)
+      }
+
+      this.$data.editingPostit = dummyPostit;
+      this.$data.editingLink.startPostit = dummyPostit;
+      this.$data.editingLink.endPostit = dummyPostit;
+      this.$data.editingLink.pos = {x: 0, y: 0};
+      this.$data.editingLink.isEditing = false;
+      this.$data.isFocusForText = false;
+      this.$data.selectedPostits = [dummyPostit];
+    },
+    createNewSheet: function() {
+      this.clear();
+      this.createNewPostit({x: 100, y: 100});
+    },
+    outputText: function() {
+      const postits = this.$data.postits.map(v => ({
+        id: v.id,
+        text: v.text,
+        pos: {x: v.pos.x, y: v.pos.y}
+      }));
+
+      const links = this.$data.links.map(v => ({startId: v.startPostit.id, endId: v.endPostit.id}))
+
+      const output = {postits, links};
+      console.log(JSON.stringify(output, null, '  '));
+    },
+    inputText: function(text) {
+      const rawData = JSON.parse(text);
+      const data = createInstance(rawData);
+      this.clear();
+      data.postits.forEach(v => this.$data.postits.push(v))
+      data.links.forEach(v => this.$data.links.push(v))
+      this.calcSize();
+    }
   },
   mounted: function() {
     const ref = this.$refs;
@@ -447,10 +491,8 @@ var app = new Vue({
           this.$data.links.push({startPostit, endPostit});
           
           event.preventDefault()
-        }
-        
+        } 
       }
-      
     })
 
   },
