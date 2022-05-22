@@ -1,34 +1,203 @@
 <!DOCTYPE html>
 <style>
+  body {
+    margin: 0px;
+  }
   .postit {
     background: #ffa;
     position: absolute;
-    padding: 6px;
+    padding: 8px;
     white-space: pre-wrap;
+    font-size: 12pt;
+    font-family: monospace;
+    cursor:grab;
+  }
+  .invisibleText {
+    color: rgba(0, 0, 0, 0);
   }
   .selected {
     box-shadow: 0px 0px 6px #000;
   }
+  .editingLink {
+    position: absolute;
+    cursor: nw-resize;
+  }
+  .st0{fill:#7AC385;stroke:#356837;}
+
+  .textarea {
+    position: absolute;
+    font-size: 12pt;
+    /* opacity: 0.8; */
+    margin: 8px;
+    padding: 0px;
+    overflow:hidden;
+    background-color: rgba(0, 0, 0, 0);
+    /* background-color: #ffa; */
+    border-style: none;
+    outline:0;
+  }
+  .invisible {
+    opacity: 0;
+  }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
-
-
-<h1>postit</h1>
-
 <div id="app">
-  <div v-for="postit in postits" v-bind:class="['postit', postit.selected ? 'selected' : '']" v-bind:style="{ left: postit.pos.x + 'px', top: postit.pos.y + 'px' }"  @mousedown="dragMouseDown($event, postit)" v-text="postit.text"></div>
-  <textarea v-model="editingPostit.text"></textarea>
+  <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="100%" height="1000" viewBox="0 0 100% 100%">
+    <line class="editingLinkLine" v-show="editingLink.isEditing" v-bind:x1="editingLink.startPostit.center.x" v-bind:y1="editingLink.startPostit.center.y" v-bind:x2="lineEndPos.x" v-bind:y2="lineEndPos.y" stroke="black" />
+
+    <line 
+      v-for="link in links" 
+      class="" 
+      v-bind:x1="link.startPostit.center.x" 
+      v-bind:y1="link.startPostit.center.y" 
+      v-bind:x2="link.endPostit.center.x" 
+      v-bind:y2="link.endPostit.center.y" 
+      stroke="black"
+    />
+  </svg>
+  <div
+    v-for="postit in postits" 
+    ref="postit" 
+    v-bind:id="postit.id"
+    v-bind:class="['postit', postit.isEditing ? 'selected' : '', postit.isEditing && isFocusForText ? 'invisibleText': '']"
+    v-bind:style="{ left: postit.pos.x + 'px', top: postit.pos.y + 'px' }" 
+    @mousedown="dragMouseDown($event, postit)" 
+    v-text="postit.text"
+  ></div>
+  <div class="editingLink" v-bind:style="{ left: editingLink.pos.x - 8 + 'px', top: editingLink.pos.y - 8 + 'px' }" @mousedown="dragMouseDownForLink">●</div>
+  <textarea 
+  v-bind:class="['textarea', isFocusForText ? '': 'invisible']"
+    v-model="editingPostit.text" 
+    v-on:focus="isFocusForText = true" v-on:blur="isFocusForText = false"
+    v-bind:style="{left: editingPostit.pos.x + 'px', top: editingPostit.pos.y + 'px', width: (editingPostit.text.length > 0 ? editingPostit.size.width : 0) + 'px', height: (editingPostit.text.length > 0 ? editingPostit.size.height : 0) + 'px' }"
+  ></textarea>
 </div>
 
-<!-- <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 200 200">
-  <style type="text/css">
-    .st0{fill:#7AC385;stroke:#356837;}
-  </style>
-  <circle class="st0" cx="100" cy="100" r="100"/>
-</svg> -->
+
 
 <script>
+class Postit {
+  #div;
+  pos = {x: 0, y: 0};
+  center = {x: 0, y: 0};
+  constructor(id, text, pos) {
+    this.id = id;
+    this.text = text;
+    this.pos.x = pos.x;
+    this.pos.y = pos.y;
+    // this.setPos(pos.x, pos.y);
+    // this.pos = pos;
+    // this.center = {x: this.pos.x, y: this.pos.y}
+    this.isEditing = false;
+  }
+  get size() {
+    if(!this.#div) {
+      // throw new Error("サイズ未確定 " + this.id);
+      return { width: 0, height: 0 }
+    } 
+    return {
+      width: this.#div.clientWidth,
+      height: this.#div.clientHeight
+    }
+  }
+  get rightBottom() {
+    return {
+      x: this.pos.x + this.size.width,
+      y: this.pos.y + this.size.height
+    }
+  }
+  setPos(x, y) {
+    this.pos.x = x;
+    this.pos.y = y;
+    this.updateCenter();    
+  }
+  setDiv(div) {
+    if(!div) {
+      throw new Error("div is undefined");
+    }
+    console.log(div);
+    this.#div = div;
+    this.updateCenter();
+  }
+  updateCenter() {
+    this.center.x = this.pos.x + this.size.width / 2;
+    this.center.y = this.pos.y + this.size.height / 2;
+  }
+}
+class PostitDummy extends Postit {
+  constructor() {
+    super("dummy", "dummy", {x: 0, y: 0})
+
+  }
+  get size() {
+    return {
+      width: 0,
+      height: 0
+    }
+  }
+}
+
+class CollisionChecker {
+  /** @type Postit[] */
+  postits;
+  
+  constructor(postits) {
+    this.postits = postits;
+  }
+
+  findCollidedPostit(pos) {
+    return this.postits.filter(v => {
+      const rightBottom = v.rightBottom;
+      if(rightBottom.x < pos.x || rightBottom.y < pos.y) {
+        return false;
+      }
+      if(v.pos.x > pos.x || v.pos.y > pos.y) {
+        return false;
+      }
+      return true;
+
+    })
+  }
+
+}
+
+const dummyPostit = new PostitDummy();//new Postit("dummy", "dummy", {x: 0, y : 0});
+function isDummy(postit) {
+  return postit.id == "dummy"
+}
+
+function toMap(list, idFunc) {
+  return list.reduce((memo, v) => {
+    memo[idFunc(v)] = v;
+    return memo;
+  }, {})
+}
+
+function createInstance(rawData) {
+  const postits = rawData.postits.map(v => new Postit(v.id, v.text, v.pos));
+  const postitMap = toMap(postits, v => v.id);
+  const links = rawData.links.map(v => ({
+    startPostit: postitMap[v.startId], 
+    endPostit: postitMap[v.endId]
+  }));
+
+  return {postits, links};
+}
+
+const rawData = {
+  postits: [
+    {id: "001", text: "hoge", pos: {x: 0, y : 100}},
+    {id: "002", text: "foo", pos: {x: 100, y : 0}},
+    {id: "003", text: "bar", pos: {x: 100, y : 100}}
+  ],
+  links: [
+    {startId: "001", endId: "002"}
+  ]
+}
+
+
+
 const data = {
   message: 'Hello Vue!',
   dragPositions: {
@@ -37,48 +206,88 @@ const data = {
     movementX: 0,
     movementY: 0
   },
-  postits: [
-    {
-      id: "001",
-      text: "hoge",
-      pos: {x: 0, y: 100}
-    },
-    {
-      id: "002",
-      text: "foo",
-      pos: {x: 100, y: 0},
-      selected: false
-    }
-  ],
-  editingPostit: {
-    id: undefined,
-    text: ""
-  }
+  ...createInstance(rawData),
+  editingPostit: dummyPostit,
+  editingLink: {
+    startPostit: dummyPostit,
+    endPostit: dummyPostit,
+    pos: {x: 0, y: 0},
+    isEditing: false
+  },
+  isFocusForText: false
 };
 
-// function findPostit(id) {
-//   const list = data.postits.filter(v => v.id == data.editingPostit.id);
-//   return list.length == 1 ? list[0] : undefined;
-// }
+var collisionChecker = new CollisionChecker([]);
 
 var app = new Vue({
   el: '#app',
   data: data,
   methods: {
-    dragMouseDown: function (event, postit) {
-      if(this.editingPostit.id != postit.id) {
-        this.editingPostit.selected = false;// 前回の選択を外す
-      }
-      postit.selected = true;
-      this.editingPostit = postit;
-      
+    dragMouseDownForLink: function(event) {
+      this.editingLink.startPostit = this.editingPostit;
+      this.editingLink.endPostit = dummyPostit;// ダミーをセットする
+      this.editingLink.isEditing = true;
+      this.editingPostit.isEditing = false;
 
-      event.preventDefault()
       // get the mouse cursor position at startup:
       this.dragPositions.clientX = event.clientX
       this.dragPositions.clientY = event.clientY
+
+      /** @type Postit[] */
+      const postits = this.$data.postits;
+      postits.forEach(v => v.updateCenter())
+      collisionChecker = new CollisionChecker(postits);
+
+      event.preventDefault()
+      document.onmousemove = (event) => this.linkDrag(event);
+      document.onmouseup = (event) => this.closeLinkDrag(event);
+    },
+    bindPostit: function() {console.log("bind")},
+    linkDrag: function (event) {
+      event.preventDefault()
+      const postits = collisionChecker.findCollidedPostit(this.editingLink.pos).filter(v => v.id != this.editingLink.startPostit.id)
+      if(postits.length == 1) {
+        this.editingLink.endPostit = postits[0]
+      } else {
+        this.editingLink.endPostit = dummyPostit;
+      }
+      this.editingLink.pos.x = event.clientX;
+      this.editingLink.pos.y = event.clientY;
+      console.log(postits.length);
+
+    },
+    closeLinkDrag () {
+      if(!isDummy(this.editingLink.startPostit) && !isDummy(this.editingLink.endPostit)) {
+        this.links.push({
+          startPostit: this.editingLink.startPostit,
+          endPostit: this.editingLink.endPostit
+        })
+      }
+      document.onmouseup = null
+      document.onmousemove = null
+    },
+    dragMouseDown: function (event, postit) {
+      if(this.editingPostit.id != postit.id) {
+        this.editingPostit.isEditing = false;// 前回の選択を外す
+        this.editingPostit.updateCenter();
+      }
+      postit.isEditing = true;
+      this.editingLink.isEditing = false;
+
+      this.editingPostit = postit;
+      // get the mouse cursor position at startup:
+      this.dragPositions.clientX = event.clientX
+      this.dragPositions.clientY = event.clientY
+
+      // link
+      this.editingLink.pos.x = postit.pos.x - 24;
+      this.editingLink.pos.y = postit.pos.y;
+
+      document.querySelector("textarea").focus();
+
+      event.preventDefault()
       document.onmousemove = (event) => this.elementDrag(event, postit);
-      document.onmouseup = (event) => this.closeDragElement(event, postit);
+      document.onmouseup = (event) => this.closeDragElement(event);
     },
     elementDrag: function (event, postit) {
       event.preventDefault()
@@ -87,12 +296,74 @@ var app = new Vue({
       this.dragPositions.clientX = event.clientX
       this.dragPositions.clientY = event.clientY
       // set the element's new position:
-      postit.pos.x = (postit.pos.x - this.dragPositions.movementX);
-      postit.pos.y = (postit.pos.y - this.dragPositions.movementY);
+      postit.setPos(
+        postit.pos.x - this.dragPositions.movementX,
+        postit.pos.y - this.dragPositions.movementY
+      );
+
+      // link
+      this.editingLink.pos.x = postit.pos.x - 24;
+      this.editingLink.pos.y = postit.pos.y;
     },
-    closeDragElement () {
+    
+    closeDragElement: function() {
+      console.log(this.editingLink.startPostit.x);
       document.onmouseup = null
       document.onmousemove = null
+    },
+    createNewPostit: function(pos) {
+      const newPostit = new Postit(`${Date.now()}`, "", pos);
+      newPostit.isEditing = true;
+      data.editingPostit.isEditing = false;
+      data.postits.push(newPostit);
+      data.editingPostit = newPostit;
+      setTimeout(() => {
+        this.$data.postits.forEach((v, i) => v.setDiv(this.$refs.postit[i]))
+      }, 1); // ちょっと待てばdivが作られるだろうって発想
+      return newPostit;// ほんとはasyncが正しいかもしれない
+    }
+  },
+  mounted: function() {
+    const ref = this.$refs;
+    this.$data.postits.forEach((v, i) => v.setDiv(this.$refs.postit[i]))
+    console.log("mounted");
+    document.addEventListener('keydown', (event) => {
+      if(event.code == "Enter" && event.shiftKey) {
+        console.log(event);
+        if(!isDummy(data.editingPostit) && data.editingPostit.isEditing) {
+          const pos = {
+            x: data.editingPostit.pos.x + 16,
+            y: data.editingPostit.pos.y + data.editingPostit.size.height + 16,
+          }
+          const endPostit = data.editingPostit;
+          const startPostit = this.createNewPostit(pos);          
+          event.preventDefault()
+        }
+      }
+      if(event.code == "Tab") {// タブが押されたら
+        if(!isDummy(data.editingPostit) && data.editingPostit.isEditing) {
+          const pos = {
+            x: data.editingPostit.pos.x + data.editingPostit.size.width + 16,
+            y: data.editingPostit.pos.y + 16,
+          }
+          const endPostit = data.editingPostit;
+          const startPostit = this.createNewPostit(pos);
+          this.$data.links.push({startPostit, endPostit});
+          
+          event.preventDefault()
+        }
+        
+      }
+      
+    })
+
+  },
+  computed: {
+    lineEndPos: function() {
+      if(isDummy(this.$data.editingLink.endPostit)) {
+        return this.editingLink.pos
+      }
+      return this.$data.editingLink.endPostit.center
     }
   }
 })
