@@ -122,93 +122,17 @@
 
 
 
-<script>
-class Postit {
-  #div;
-  pos = {x: 0, y: 0};
-  center = {x: 0, y: 0};
-  constructor(id, text, pos) {
-    this.id = id;
-    this.text = text;
-    this.pos.x = pos.x;
-    this.pos.y = pos.y;
-    this.isEditing = false; // テキストを編集しているか
-  }
-  get size() {
-    if(!this.#div) {
-      // throw new Error("サイズ未確定 " + this.id);
-      return { width: 0, height: 0 }
-    } 
-    return {
-      width: this.#div.clientWidth,
-      height: this.#div.clientHeight
-    }
-  }
-  get rightBottom() {
-    return {
-      x: this.pos.x + this.size.width,
-      y: this.pos.y + this.size.height
-    }
-  }
-  setPos(x, y) {
-    this.pos.x = x;
-    this.pos.y = y;
-    this.updateCenter();    
-  }
-  setDiv(div) {
-    if(!div) {
-      throw new Error("div is undefined");
-    }
-    // console.log(div);
-    this.#div = div;
-    this.updateCenter();
-  }
-  updateCenter() {
-    this.center.x = this.pos.x + this.size.width / 2;
-    this.center.y = this.pos.y + this.size.height / 2;
-  }
-}
-class PostitDummy extends Postit {
-  constructor() {
-    super("dummy", "dummy", {x: 12, y: 12})
-
-  }
-  get size() {
-    return {
-      width: 0,
-      height: 0
-    }
-  }
-}
-
-class CollisionChecker {
-  /** @type Postit[] */
-  postits;
-  
-  constructor(postits) {
-    this.postits = postits;
-  }
-
-  findCollidedPostit(pos) {
-    return this.postits.filter(v => {
-      const rightBottom = v.rightBottom;
-      if(rightBottom.x < pos.x || rightBottom.y < pos.y) {
-        return false;
-      }
-      if(v.pos.x > pos.x || v.pos.y > pos.y) {
-        return false;
-      }
-      return true;
-
-    })
-  }
-
-}
-
+<script type="module">
+import {Postit, PostitDummy} from "./js/Postit.js"
+import {PostitService} from "./js/PostitService.js"
+import {CollisionChecker} from "./js/CollisionChecker.js"
+import {TextIOService} from "./js/TextIOService.js"
+import {DragPostitService} from "./js/DragPostitService.js"
+import {SelectedPostits} from "./js/SelectedPostits.js"
 const dummyPostit = new PostitDummy();//new Postit("dummy", "dummy", {x: 0, y : 0});
-function isDummy(postit) {
-  return postit.id == "dummy"
-}
+// function isDummy(postit) {
+//   return postit.id == "dummy"
+// }
 
 function toMap(list, idFunc) {
   return list.reduce((memo, v) => {
@@ -239,27 +163,6 @@ const rawData = {
   ]
 }
 
-class SelectedPostits {
-  /** @type Postit[] */
-  values;
-  constructor() {
-    this.values = [dummyPostit]
-  }
-  clear() {
-    while(this.values.pop()) {
-      // nop;
-    }
-  }
-  setOne(postit) {
-    this.clear();
-    this.values.push(postit);
-  }
-}
-
-const selectedPostits = new SelectedPostits();
-
-
-
 const data = {
   message: 'Hello Vue!',
   dragPositions: {
@@ -269,6 +172,7 @@ const data = {
     movementY: 0
   },
   ...createInstance(rawData),
+  selectedPostits: new SelectedPostits(dummyPostit),
   editingPostit: dummyPostit,
   editingLink: {
     startPostit: dummyPostit,
@@ -276,8 +180,7 @@ const data = {
     pos: {x: 0, y: 0},
     isEditing: false
   },
-  isFocusForText: false,
-  selectedPostits: [dummyPostit]
+  isFocusForText: false
 };
 
 var collisionChecker = new CollisionChecker([]);
@@ -286,6 +189,15 @@ var app = new Vue({
   el: '#app',
   data: data,
   methods: {
+    getPostitService: function() {
+      return new PostitService(this.$data.postits, this.$data.links);
+    },
+    getTextIOService: function() {
+      return new TextIOService(this.$data.postits, this.$data.links);
+    },
+    getDragPostitService: function() {
+      return new DragPostitService(this.$data);
+    },
     dragMouseDownForLink: function(event) {
       this.editingLink.startPostit = this.editingPostit;
       this.editingLink.endPostit = dummyPostit;// ダミーをセットする
@@ -319,7 +231,7 @@ var app = new Vue({
 
     },
     closeLinkDrag () {
-      if(!isDummy(this.editingLink.startPostit) && !isDummy(this.editingLink.endPostit)) {
+      if(!PostitDummy.isDummy(this.editingLink.startPostit) && !PostitDummy.isDummy(this.editingLink.endPostit)) {
         this.links.push({
           startPostit: this.editingLink.startPostit,
           endPostit: this.editingLink.endPostit
@@ -329,22 +241,14 @@ var app = new Vue({
       document.onmousemove = null
     },
     dragMouseDown: function (event, postit) {
-      if(this.editingPostit.id != postit.id) {
-        this.editingPostit.isEditing = false;// 前回の選択を外す
-        this.editingPostit.updateCenter();
+      const selectedPostits = this.$data.selectedPostits;
+      if(event.shiftKey) {
+        selectedPostits.select(postit);  
+      } else {
+        selectedPostits.selectOne(postit);
       }
-      postit.isEditing = true;
-      this.editingLink.isEditing = false;
-
-      this.editingPostit = postit;
-      // get the mouse cursor position at startup:
-      this.dragPositions.clientX = event.clientX
-      this.dragPositions.clientY = event.clientY
-
-      // link
-      this.editingLink.pos.x = postit.pos.x - 16;
-      this.editingLink.pos.y = postit.pos.y + 8;
-
+      // selectedPostits.select(postit);
+      this.getDragPostitService().onStartDrag(event.clientX, event.clientY, postit);
       document.querySelector("textarea").focus();
 
       event.preventDefault()
@@ -352,38 +256,25 @@ var app = new Vue({
       document.onmouseup = (event) => this.closeDragElement(event);
     },
     elementDrag: function (event, postit) {
+      this.getDragPostitService().onDragging(event.clientX, event.clientY, postit);
       event.preventDefault()
-      this.dragPositions.movementX = this.dragPositions.clientX - event.clientX
-      this.dragPositions.movementY = this.dragPositions.clientY - event.clientY
-      this.dragPositions.clientX = event.clientX
-      this.dragPositions.clientY = event.clientY
-      // set the element's new position:
-      postit.setPos(
-        postit.pos.x - this.dragPositions.movementX,
-        postit.pos.y - this.dragPositions.movementY
-      );
-
-      // link
-      this.editingLink.pos.x = postit.pos.x - 16;
-      this.editingLink.pos.y = postit.pos.y + 8;
     },
-    
     closeDragElement: function() {
-      console.log(this.editingLink.startPostit.x);
       document.onmouseup = null
       document.onmousemove = null
     },
-    createNewPostit: function(pos) {
-      const newPostit = new Postit(`${Date.now()}`, "", pos);
-      newPostit.isEditing = true;
+    toEditMode: function(postit) {
+      postit.isEditing = true;
       data.editingPostit.isEditing = false;
-      data.postits.push(newPostit);
-      data.editingPostit = newPostit;
+      data.editingPostit = postit;
 
       // link
-      this.editingLink.pos.x = newPostit.pos.x - 24;
-      this.editingLink.pos.y = newPostit.pos.y;
-
+      this.editingLink.pos.x = postit.pos.x - 24;
+      this.editingLink.pos.y = postit.pos.y;
+    },
+    createNewPostit: function(pos) {
+      const newPostit = this.getPostitService().createNewPostit(pos);
+      this.toEditMode(newPostit);
       this.calcSize();
       return newPostit;// ほんとはasyncが正しいかもしれない
     },
@@ -394,115 +285,86 @@ var app = new Vue({
     },
     deletePostit: function() {
       console.log("delete");
-      if(isDummy(this.$data.editingPostit)) {
+      if(PostitDummy.isDummy(this.$data.editingPostit)) {
         return;
       }
-
-      // 付箋の削除
-      this.$data.postits
-        .map((v, i) => v.id == this.$data.editingPostit.id ? i : -1)
-        .filter(v => v >= 0)
-        .reverse() // 1つしかないはずだから意味ない
-        .forEach(v => this.$data.postits.splice(v, 1))
-      
-
-      // linkの削除
-      const indexies = this.$data.links
-        .map((v, i) => v.startPostit.id == this.$data.editingPostit.id || v.endPostit.id == this.$data.editingPostit.id ? i : -1)
-        .filter(v => v >= 0)
-        .reverse();
-      console.log(indexies);
-      indexies.forEach(v => this.$data.links.splice(v, 1))
+      this.getPostitService().deletePostit(this.$data.editingPostit)
 
       this.$data.editingPostit = dummyPostit;
       this.calcSize();
     },
+    
     clear: function() {
-      // 一気に消せるかも
-      for(let i = this.$data.postits.length - 1; i >= 0; i--) {
-        this.$data.postits.splice(i, 1)
-      }
-      for(let i = this.$data.links.length - 1; i >= 0; i--) {
-        this.$data.links.splice(i, 1)
-      }
-
+      this.getPostitService().clearAll();
+      
       this.$data.editingPostit = dummyPostit;
       this.$data.editingLink.startPostit = dummyPostit;
       this.$data.editingLink.endPostit = dummyPostit;
       this.$data.editingLink.pos = {x: 0, y: 0};
       this.$data.editingLink.isEditing = false;
       this.$data.isFocusForText = false;
-      this.$data.selectedPostits = [dummyPostit];
+      this.$data.selectedPostits.clear();
     },
     createNewSheet: function() {
       this.clear();
       this.createNewPostit({x: 100, y: 100});
     },
     outputText: function() {
-      const postits = this.$data.postits.map(v => ({
-        id: v.id,
-        text: v.text,
-        pos: {x: v.pos.x, y: v.pos.y}
-      }));
-
-      const links = this.$data.links.map(v => ({startId: v.startPostit.id, endId: v.endPostit.id}))
-
-      const output = {postits, links};
-      console.log(JSON.stringify(output, null, '  '));
+      const text = this.getTextIOService().outputText();
+      console.log(text);
     },
     inputText: function(text) {
-      const rawData = JSON.parse(text);
-      const data = createInstance(rawData);
       this.clear();
-      data.postits.forEach(v => this.$data.postits.push(v))
-      data.links.forEach(v => this.$data.links.push(v))
+      this.getTextIOService().inputText(text);
       this.calcSize();
-    }
+    },
   },
   mounted: function() {
     const ref = this.$refs;
     this.$data.postits.forEach((v, i) => v.setDiv(this.$refs.postit[i]))
     this.$refs.textarea.addEventListener('compositionend', () => this.$data.postits.forEach((v, i) => v.setDiv(this.$refs.postit[i])));
+    // this.$refs.textarea.addEventListener('compositionend', () => this.$data.postits.forEach((v, i) => v.setDiv(this.$refs.postit[i])));
 
     console.log("mounted");
     document.addEventListener('keydown', (event) => {
       console.log(event);
-      this.$refs.textarea.addEventListener('compositionend', () => this.$data.postits.forEach((v, i) => v.setDiv(this.$refs.postit[i])));
+
+      // 選択中のふせんをキー操作で動かす
+      this.$data.selectedPostits.moveSelectedPostitIfKeyPressed(event);
+      
       if(event.code == "Enter" && event.shiftKey) {
-        
-        if(!isDummy(data.editingPostit) && data.editingPostit.isEditing) {
-          const pos = {
-            x: data.editingPostit.pos.x,
-            y: data.editingPostit.pos.y + data.editingPostit.size.height + 16,
-          }
-          const endPostit = data.editingPostit;
-          const startPostit = this.createNewPostit(pos);          
-          event.preventDefault()
+        if(PostitDummy.isDummy(data.editingPostit) || !data.editingPostit.isEditing) {
+          return;
         }
+        
+        const pos = {
+          x: data.editingPostit.pos.x,
+          y: data.editingPostit.pos.y + data.editingPostit.size.height + 16,
+        }
+        const endPostit = data.editingPostit;
+        const startPostit = this.createNewPostit(pos);          
+        event.preventDefault()
       }
-      if(event.code == "Tab") {// タブが押されたら
-        if(!isDummy(data.editingPostit) && data.editingPostit.isEditing) {
-          const pos = {
-            x: data.editingPostit.pos.x + data.editingPostit.size.width + 16,
-            y: data.editingPostit.pos.y + 16,
-          }
-          const endPostit = data.editingPostit;
-          const startPostit = this.createNewPostit(pos);
-          this.$data.links.push({startPostit, endPostit});
-          
-          event.preventDefault()
-        } 
+      if(event.code == "Tab") {// タブが押されたら、サブ付箋を作る
+        if(PostitDummy.isDummy(data.editingPostit) || !data.editingPostit.isEditing) {
+          return;
+        }
+        const newPostit = this.getPostitService().createSubPostit(data.editingPostit);
+        this.toEditMode(newPostit);
+        this.calcSize();
+        event.preventDefault()
       }
     })
 
   },
   computed: {
     lineEndPos: function() {
-      if(isDummy(this.$data.editingLink.endPostit)) {
+      if(PostitDummy.isDummy(this.$data.editingLink.endPostit)) {
         return this.editingLink.pos
       }
       return this.$data.editingLink.endPostit.center
     }
   }
 })
+window.app = app;
 </script>
