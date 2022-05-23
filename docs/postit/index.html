@@ -70,7 +70,7 @@
         v-bind:id="'rect' + postit.id"
         v-bind:x="postit.pos.x"
         v-bind:y="postit.pos.y"
-        v-bind:width="postit.size.width"
+        v-bind:width="postit.isDiv ? postit.size.width : postit.size.width"
         v-bind:height="postit.size.height"
         fill="#ffa"
         stroke="#888"
@@ -116,6 +116,7 @@
   ></textarea>
 
   <div class="right-toolbar">
+    <button v-on:click="createNoLinkPostit">付箋追加</button><br>
     <button v-on:click="deletePostit">付箋削除</button><br>
     <button v-on:click="outputText">テキスト出力</button><br>
     <button v-on:click="createNewSheet">新規作成</button><br>
@@ -244,6 +245,11 @@ var app = new Vue({
       this.toEditMode(newPostit);
       this.calcSize();
       return newPostit;// ほんとはasyncが正しいかもしれない
+    },
+    createNoLinkPostit: function() {// 編集中の付箋の近くに
+      const newPostit = this.getPostitService().createNoLinkPostit(this.$data.editingPostit);
+      this.toEditMode(newPostit);
+      this.calcSize();
     },
     createNewSheet: function() {
       this.clear();

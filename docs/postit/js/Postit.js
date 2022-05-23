@@ -2,23 +2,19 @@ export class Postit {
   #div;
   pos = {x: 0, y: 0};
   center = {x: 0, y: 0};
+  isDiv = false; // vueに更新を気づいてもらうためのフラグ
   constructor(id, text, pos) {
     this.id = id;
     this.text = text;
     this.pos.x = pos.x;
     this.pos.y = pos.y;
   }
-  get isEditing() {
-    throw new Error("ダメ");
-  }
-  set isEditing(tf) {
-    throw new Error("ダメ");
-  }
+
   get size() {
     if(!this.#div) {
       // throw new Error("サイズ未確定 " + this.id);
       return { width: 0, height: 0 }
-    } 
+    }
     return {
       width: this.#div.clientWidth,
       height: this.#div.clientHeight
@@ -42,6 +38,7 @@ export class Postit {
     // console.log(div);
     this.#div = div;
     this.updateCenter();
+    this.isDiv = true;
   }
   updateCenter() {
     this.center.x = this.pos.x + this.size.width / 2;
