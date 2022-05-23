@@ -60,16 +60,11 @@
 
   <!-- 最終成果物のsvg -->
   <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="100%" height="1000">
-    <line 
-      v-for="link in links" 
-      class="" 
-      v-bind:x1="link.startPostit.center.x" 
-      v-bind:y1="link.startPostit.center.y" 
-      v-bind:x2="link.endPostit.center.x" 
-      v-bind:y2="link.endPostit.center.y" 
-      stroke="black"
-      stroke-width="2"
-    />
+    <!-- 矢印 -->
+    <marker id="m_ar" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="strokeWidth" preserveAspectRatio="none" markerWidth="8" markerHeight="6" orient="auto-start-reverse">
+      <polygon points="0,0 0,10 6,5" id="ms"/>
+    </marker>
+
     <g v-for="postit in postits" >
       <rect 
         v-bind:id="'rect' + postit.id"
@@ -91,6 +86,12 @@
         v-text="text"
       ></text>
     </g>
+
+    <path 
+      v-for="link in links" 
+      v-bind:d="`M${link.getStartPoint().x},${link.getStartPoint().y} L${link.getEndPoint().x},${link.getEndPoint().y}`" 
+      fill="none" stroke="black" stroke-width="2" marker-end="url(#m_ar)"
+    />
   </svg>
   
   <!-- 付箋サイズ計算用 -->
@@ -129,6 +130,7 @@ import {TextIOService} from "./js/TextIOService.js"
 import {DragPostitService} from "./js/DragPostitService.js"
 import {SelectedPostits} from "./js/SelectedPostits.js"
 import {MouseMovement} from "./js/MouseMovement.js"
+import {Link} from "./js/Link.js"
 
 const dummyPostit = PostitDummy.instance();
 
@@ -205,10 +207,10 @@ var app = new Vue({
     },
     closeLinkDrag () {
       if(!PostitDummy.isDummy(this.editingLink.startPostit) && !PostitDummy.isDummy(this.editingLink.endPostit)) {
-        this.links.push({
-          startPostit: this.editingLink.startPostit,
-          endPostit: this.editingLink.endPostit
-        })
+        this.links.push(new Link(
+          this.editingLink.startPostit,
+          this.editingLink.endPostit
+        ))
       }
       document.onmouseup = null
       document.onmousemove = null

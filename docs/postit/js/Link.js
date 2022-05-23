@@ -1,4 +1,5 @@
 import {Postit} from "./Postit.js"
+import {calcCollisionPoint} from "./utils/calcCollisionPoint.js"
 
 export class Link {
   /** @type Postit */
@@ -13,6 +14,20 @@ export class Link {
   constructor(startPostit, endPostit) {
     this.startPostit = startPostit;
     this.endPostit = endPostit;
+  }
+
+  getEndPoint() {
+    if(this.endPostit.size.width == 0 || this.endPostit.size.height == 0) {
+      return this.endPostit.center
+    }
+    return calcCollisionPoint(this.startPostit.pos, this.endPostit);
+  }
+
+  getStartPoint() {
+    if(this.startPostit.size.width == 0 || this.startPostit.size.height == 0) {
+      return this.startPostit.center
+    }
+    return calcCollisionPoint(this.endPostit.pos, this.startPostit);
   }
 
   /**

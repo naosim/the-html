@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+<div id="app">
+<h1>四角形と直線</h1>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="800" height="400">
+<marker id="m_ar" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="strokeWidth" preserveAspectRatio="none" markerWidth="8" markerHeight="6" orient="auto-start-reverse">
+  <polygon points="0,0 0,10 6,5" id="ms"/>
+</marker>
+  <rect 
+        v-bind:x="rect.pos.x"
+        v-bind:y="rect.pos.y"
+        v-bind:width="rect.size.width"
+        v-bind:height="rect.size.height"
+        fill="#ffa"
+        stroke="#888"
+      />
+  <circle v-bind:cx="point.x" v-bind:cy="point.y" r="2" />
+  <line 
+    v-bind:x1="line.start.x" 
+    v-bind:y1="line.start.y" 
+    v-bind:x2="line.end.x" 
+    v-bind:y2="line.end.y" 
+    stroke="black"
+    marker-end="url(#m_atr)"
+     />
+  <path v-bind:d="`M${line.start.x},${line.start.y} L${line.end.x},${line.end.y}`" fill="none" stroke="black" stroke-width="2" marker-end="url(#m_ar)"/>
+</svg><br>
+<button v-on:click="click">ランダム</button>
+<pre>
+点
+  x: <input type="text" v-model="point.x" />, y: <input type="text" v-model="point.y" />
+四角形
+  x: <input type="text" v-model="rect.pos.x" />, y: <input type="text" v-model="rect.pos.y" />
+  width: <input type="text" v-model="rect.size.width" />, height: <input type="text" v-model="rect.size.height" />
+
+</pre>
+</div>
+<script>
+
+function calcEndPoint(point, rect) {
+  // 四角形の中心
+  const center = {
+    x: rect.pos.x + rect.size.width / 2,
+    y: rect.pos.y + rect.size.height / 2
+  }
+  // 範囲内かどうか？ startは境界値含む、endは境界値含まず
+  const isInRange = (v, start, end) => start <= v && v < end;
+
+  // 点と四角形の中心を結ぶ直線
+  const getY = (x) => (center.y - point.y) / (center.x - point.x) * (x - point.x) + point.y;
+  const getX = (y) => (center.x - point.x) / (center.y - point.y) * (y - point.y) + point.x;
+
+  const getYWithRange = (x, yRangeStart, yRangeEnd) => {
+    const y = getY(x);
+    return isInRange(y, yRangeStart, yRangeEnd) ? y : undefined;
+  };
+  const getXWithRange = (y, xRangeStart, xRangeEnd) => {
+    const x = getX(y);
+    return isInRange(x, xRangeStart, xRangeEnd) ? x : undefined;
+  }
+
+  // 各辺(直線)と線の交点 
+  const candidatePoints = [
+    {
+      x: getXWithRange(rect.pos.y, rect.pos.x, rect.pos.x + rect.size.width),
+      y: rect.pos.y
+    },
+    {
+      x: getXWithRange(rect.pos.y + rect.size.height, rect.pos.x, rect.pos.x + rect.size.width),
+      y: rect.pos.y + rect.size.height
+    },
+    {
+      x: rect.pos.x + rect.size.width, 
+      y: getYWithRange(rect.pos.x + rect.size.width, rect.pos.y, rect.pos.y + rect.size.height)
+    },
+    {
+      x: rect.pos.x, 
+      y: getYWithRange(rect.pos.x, rect.pos.y, rect.pos.y + rect.size.height)
+    }
+  ].filter(v => v.x !== undefined && v.y !== undefined);
+
+  if(candidatePoints.length == 1) {
+    return candidatePoints[0];
+  }
+
+  const lengthes = candidatePoints.map(v => Math.pow(v.x - point.x, 2) + Math.pow(v.y - point.y, 2));
+  
+  return lengthes[0] < lengthes[1] ? candidatePoints[0] : candidatePoints[1];
+}
+
+
+function random(start, end) {
+  return Math.random() * (end - start) + start;
+}
+var app = new Vue({
+  el: '#app',
+  data: {
+    point: {x: 10, y: 10},
+    rect: {
+      pos: {x: 300, y: 100},
+      size: {width: 100, height: 100}
+    },
+    line: {
+      start: {x: 0, y: 0},
+      end: {x: 0, y: 0},
+    }
+  },
+  methods: {
+    updateLine: function() {
+      const point = this.$data.point;
+      const rect = this.$data.rect;
+
+      const endPoint = calcEndPoint(point, rect);
+
+      this.$data.line.start.x = point.x;
+      this.$data.line.start.y = point.y;
+      this.$data.line.end.x = endPoint.x;
+      this.$data.line.end.y = endPoint.y;
+    },
+    click: function() {
+      const point = this.$data.point;
+      const rect = this.$data.rect;
+
+      point.x = random(0, 800);
+      point.y = random(0, 400);
+
+      rect.size.width = random(50, 300);
+      rect.size.height = random(50, 300);
+
+      this.updateLine();
+    }
+  },
+  mounted: function() {
+    this.updateLine();
+  }
+
+})
+</script>
