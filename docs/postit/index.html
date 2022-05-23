@@ -257,17 +257,17 @@ var app = new Vue({
 
       // link
       this.$data.editingLink.pos.updateWithPostit(postit);
+
+      this.calcSize();
     },
     createNewPostit: function(pos) {
       const newPostit = this.getPostitService().createNewPostit(pos);
-      this.toEditMode(newPostit);
-      this.calcSize();
+      this.toEditMode(newPostit);  
       return newPostit;// ほんとはasyncが正しいかもしれない
     },
     createNoLinkPostit: function() {// 編集中の付箋の近くに
       const newPostit = this.getPostitService().createNoLinkPostit(this.$data.editingPostit);
       this.toEditMode(newPostit);
-      this.calcSize();
     },
     createNewSheet: function() {
       this.clear();
@@ -332,7 +332,6 @@ var app = new Vue({
         }
         const newPostit = this.getPostitService().createSidePostit(data.editingPostit);
         this.toEditMode(newPostit);
-        this.calcSize();
         event.preventDefault()
       }
       if(event.code == "Tab") {// タブが押されたら、サブ付箋を作る
@@ -341,7 +340,6 @@ var app = new Vue({
         }
         const newPostit = this.getPostitService().createSubPostit(data.editingPostit);
         this.toEditMode(newPostit);
-        this.calcSize();
         event.preventDefault()
       }
     })
