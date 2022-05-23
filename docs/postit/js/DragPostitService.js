@@ -31,8 +31,7 @@ export class DragPostitService {
     this.mouseMovement.updateClientPos(clientX, clientY);
 
     // link
-    this.data.editingLink.pos.x = postit.pos.x - 16;
-    this.data.editingLink.pos.y = postit.pos.y + 8;
+    this.data.editingLink.pos.updateWithPostit(postit);
   }
 
   onDragging(clientX, clientY, postit) {
@@ -40,7 +39,6 @@ export class DragPostitService {
     this.selectedPostits.move(movement.x, movement.y)
     
     // link
-    this.data.editingLink.pos.x = postit.pos.x - 16;
-    this.data.editingLink.pos.y = postit.pos.y + 8;
+    this.data.editingLink.pos.updateWithPostit(postit);
   }
 }

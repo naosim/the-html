@@ -1,5 +1,10 @@
 <!DOCTYPE html>
+<!-- <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c&display=swap" rel="stylesheet"> -->
+
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=M+PLUS+1+Code&display=swap');
   body {
     margin: 0px;
   }
@@ -9,9 +14,10 @@
     padding: 8px;
     white-space: pre-wrap;
     font-size: 16px;
-    font-family: monospace;
+    /* font-family: monospace; */
+    font-family: 'M PLUS 1 Code', sans-serif;
     cursor:grab;
-    opacity: 0.01;
+    opacity: 0.8;
   }
   .invisibleText {
     color: rgba(0, 0, 0, 0);
@@ -29,13 +35,17 @@
     position: absolute;
     font-size: 16px;
     /* opacity: 0.8; */
-    margin: 8px;
-    padding: 0px;
+    /* margin: 8px; */
+    padding: 8px;
+    line-height: 20px;
     overflow:hidden;
     background-color: rgba(0, 0, 0, 0);
-    /* background-color: #ffa; */
+    /* background-color: #faf; */
     border-style: none;
     outline:0;
+    font-family: 'M PLUS 1 Code', sans-serif;
+    /* opacity: 0.5; */
+    /* color: red; */
   }
   .invisible {
     opacity: 0;
@@ -59,7 +69,12 @@
   </svg>
 
   <!-- 最終成果物のsvg -->
-  <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="100%" height="1000">
+  <svg id="mainSvg" version="1.1" xmlns="http://www.w3.org/2000/svg" width="100%" height="1000">
+    <!-- <defs>
+      <style>
+        <![CDATA[@import url('https://fonts.googleapis.com/css2?family=RocknRoll+One&display=swap');]]>
+      </style>
+    </defs> -->
     <!-- 矢印 -->
     <marker id="m_ar" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="strokeWidth" preserveAspectRatio="none" markerWidth="8" markerHeight="6" orient="auto-start-reverse">
       <polygon points="0,0 0,10 6,5" id="ms"/>
@@ -80,9 +95,9 @@
         stroke="none" 
         v-for="(text, index) in postit.text.split('\n')" 
         v-bind:x="postit.pos.x + 8"
-        v-bind:y="postit.pos.y + index * 17 + 22"
+        v-bind:y="postit.pos.y + index * textHeight + 23"
         font-size="16"
-        style="font-family: monospace;"
+        style="font-family: 'M PLUS 1 Code', sans-serif;"
         v-text="text"
       ></text>
     </g>
@@ -119,6 +134,7 @@
     <button v-on:click="createNoLinkPostit">付箋追加</button><br>
     <button v-on:click="deletePostit">付箋削除</button><br>
     <button v-on:click="outputText">テキスト出力</button><br>
+    <button v-on:click="outputSvg">SVG出力</button><br>
     <button v-on:click="createNewSheet">新規作成</button><br>
   </div>
 </div>
@@ -132,6 +148,7 @@ import {DragPostitService} from "./js/DragPostitService.js"
 import {SelectedPostits} from "./js/SelectedPostits.js"
 import {MouseMovement} from "./js/MouseMovement.js"
 import {Link} from "./js/Link.js"
+import {EditingLinkPos} from "./js/EditingLinkPos.js"
 
 const dummyPostit = PostitDummy.instance();
 
@@ -154,11 +171,12 @@ const data = {
   editingLink: {
     startPostit: dummyPostit,
     endPostit: dummyPostit,
-    pos: {x: 0, y: 0},
+    pos: new EditingLinkPos(),
     isEditing: false
   },
   editingPostit: dummyPostit,
-  isFocusForText: false
+  isFocusForText: false,
+  textHeight: 20 // 定数
 };
 
 var collisionChecker = new CollisionChecker([]);
@@ -212,6 +230,7 @@ var app = new Vue({
           this.editingLink.startPostit,
           this.editingLink.endPostit
         ))
+        this.$data.editingLink.pos.updateWithPostit(this.editingLink.startPostit);
       }
       document.onmouseup = null
       document.onmousemove = null
@@ -237,8 +256,7 @@ var app = new Vue({
       data.editingPostit = postit;
 
       // link
-      this.editingLink.pos.x = postit.pos.x - 24;
-      this.editingLink.pos.y = postit.pos.y;
+      this.$data.editingLink.pos.updateWithPostit(postit);
     },
     createNewPostit: function(pos) {
       const newPostit = this.getPostitService().createNewPostit(pos);
@@ -285,6 +303,9 @@ var app = new Vue({
     outputText: function() {
       const text = this.getTextIOService().outputText();
       console.log(text);
+    },
+    outputSvg: function() {
+      console.log(document.querySelector("#mainSvg").outerHTML)
     },
     inputText: function(text) {
       this.clear();
