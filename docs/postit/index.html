@@ -128,6 +128,7 @@ import {CollisionChecker} from "./js/CollisionChecker.js"
 import {TextIOService} from "./js/TextIOService.js"
 import {DragPostitService} from "./js/DragPostitService.js"
 import {SelectedPostits} from "./js/SelectedPostits.js"
+import {MouseMovement} from "./js/MouseMovement.js"
 const dummyPostit = new PostitDummy();//new Postit("dummy", "dummy", {x: 0, y : 0});
 // function isDummy(postit) {
 //   return postit.id == "dummy"
@@ -162,14 +163,11 @@ const rawData = {
   ]
 }
 
+
+
 const data = {
   message: 'Hello Vue!',
-  dragPositions: {
-    clientX: undefined,
-    clientY: undefined,
-    movementX: 0,
-    movementY: 0
-  },
+  mouseMovement: new MouseMovement(),
   ...createInstance(rawData),
   selectedPostits: new SelectedPostits(dummyPostit),
   editingPostit: dummyPostit,
@@ -204,8 +202,7 @@ var app = new Vue({
       this.editingPostit.isEditing = false;
 
       // get the mouse cursor position at startup:
-      this.dragPositions.clientX = event.clientX
-      this.dragPositions.clientY = event.clientY
+      this.mouseMovement.updateClientPos(event.clientX, event.clientY);
 
       /** @type Postit[] */
       const postits = this.$data.postits;

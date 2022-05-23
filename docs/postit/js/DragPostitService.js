@@ -1,8 +1,19 @@
+import {SelectedPostits} from "./SelectedPostits.js"
+import {MouseMovement} from "./MouseMovement.js"
+
 export class DragPostitService {
   data;
+  /** @type MouseMovement */
+  mouseMovement;
+
+  /** @type SelectedPostits */
+  selectedPostits;
   constructor(data) {
     this.data = data;
+    this.mouseMovement = data.mouseMovement;
+    this.selectedPostits = data.selectedPostits;
   }
+  
   onStartDrag(clientX, clientY, postit) {
     if(this.data.editingPostit.id != postit.id) {
       this.data.editingPostit.isEditing = false;// 前回の選択を外す
@@ -13,8 +24,7 @@ export class DragPostitService {
 
     this.data.editingPostit = postit;
     // get the mouse cursor position at startup:
-    this.data.dragPositions.clientX = clientX
-    this.data.dragPositions.clientY = clientY
+    this.mouseMovement.updateClientPos(clientX, clientY);
 
     // link
     this.data.editingLink.pos.x = postit.pos.x - 16;
@@ -22,19 +32,11 @@ export class DragPostitService {
   }
 
   onDragging(clientX, clientY, postit) {
-    this.data.dragPositions.movementX = this.data.dragPositions.clientX - clientX
-    this.data.dragPositions.movementY = this.data.dragPositions.clientY - clientY
-    this.data.dragPositions.clientX = clientX
-    this.data.dragPositions.clientY = clientY
-    // set the element's new position:
-    postit.setPos(
-      postit.pos.x - this.data.dragPositions.movementX,
-      postit.pos.y - this.data.dragPositions.movementY
-    )
+    const movement = this.mouseMovement.updateClientPos(clientX, clientY);
+    this.selectedPostits.move(movement.x, movement.y)
     
     // link
     this.data.editingLink.pos.x = postit.pos.x - 16;
     this.data.editingLink.pos.y = postit.pos.y + 8;
-
   }
 }
