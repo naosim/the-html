@@ -83,7 +83,6 @@
       />
       <text
         stroke="none" 
-        v-bind:fill="postit.isEditing && isFocusForText ? 'none': 'black'"
         v-for="(text, index) in postit.text.split('\n')" 
         v-bind:x="postit.pos.x + 8"
         v-bind:y="postit.pos.y + index * 17 + 22"
@@ -99,8 +98,9 @@
     v-for="postit in postits" 
     ref="postit" 
     v-bind:id="postit.id"
-    v-bind:class="['postit', postit.isEditing ? 'selected' : '', postit.isEditing && isFocusForText ? 'invisibleText': '']"
     v-bind:style="{ left: postit.pos.x + 'px', top: postit.pos.y + 'px' }" 
+    v-bind:class="['postit']"
+
     @mousedown="dragMouseDown($event, postit)" 
     v-text="postit.text.length > 0 ? postit.text : ' '"
   ></div>
@@ -129,7 +129,8 @@ import {TextIOService} from "./js/TextIOService.js"
 import {DragPostitService} from "./js/DragPostitService.js"
 import {SelectedPostits} from "./js/SelectedPostits.js"
 import {MouseMovement} from "./js/MouseMovement.js"
-const dummyPostit = new PostitDummy();//new Postit("dummy", "dummy", {x: 0, y : 0});
+
+const dummyPostit = PostitDummy.instance();
 
 const rawData = {
   postits: [
@@ -147,13 +148,13 @@ const data = {
   mouseMovement: new MouseMovement(),
   ...TextIOService.createInstance(rawData),
   selectedPostits: new SelectedPostits(dummyPostit),
-  editingPostit: dummyPostit,
   editingLink: {
     startPostit: dummyPostit,
     endPostit: dummyPostit,
     pos: {x: 0, y: 0},
     isEditing: false
   },
+  editingPostit: dummyPostit,
   isFocusForText: false
 };
 
@@ -176,7 +177,6 @@ var app = new Vue({
       this.editingLink.startPostit = this.editingPostit;
       this.editingLink.endPostit = dummyPostit;// ダミーをセットする
       this.editingLink.isEditing = true;
-      this.editingPostit.isEditing = false;
 
       // get the mouse cursor position at startup:
       this.mouseMovement.updateClientPos(event.clientX, event.clientY);
@@ -231,8 +231,6 @@ var app = new Vue({
       document.onmousemove = null
     },
     toEditMode: function(postit) {
-      postit.isEditing = true;
-      data.editingPostit.isEditing = false;
       data.editingPostit = postit;
 
       // link
@@ -300,7 +298,7 @@ var app = new Vue({
       this.$data.selectedPostits.moveSelectedPostitIfKeyPressed(event);
       
       if(event.code == "Enter" && event.shiftKey) {
-        if(PostitDummy.isDummy(data.editingPostit) || !data.editingPostit.isEditing) {
+        if(PostitDummy.isDummy(data.editingPostit)) {
           return;
         }
         
@@ -313,7 +311,7 @@ var app = new Vue({
         event.preventDefault()
       }
       if(event.code == "Tab") {// タブが押されたら、サブ付箋を作る
-        if(PostitDummy.isDummy(data.editingPostit) || !data.editingPostit.isEditing) {
+        if(PostitDummy.isDummy(data.editingPostit)) {
           return;
         }
         const newPostit = this.getPostitService().createSubPostit(data.editingPostit);

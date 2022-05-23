@@ -22,10 +22,8 @@ export class DragPostitService {
     }
 
     if(this.data.editingPostit.id != postit.id) {
-      this.data.editingPostit.isEditing = false;// 前回の選択を外す
       this.data.editingPostit.updateCenter();
     }
-    postit.isEditing = true;
     this.data.editingLink.isEditing = false;
 
     this.data.editingPostit = postit;

@@ -7,7 +7,12 @@ export class Postit {
     this.text = text;
     this.pos.x = pos.x;
     this.pos.y = pos.y;
-    this.isEditing = false; // テキストを編集しているか
+  }
+  get isEditing() {
+    throw new Error("ダメ");
+  }
+  set isEditing(tf) {
+    throw new Error("ダメ");
   }
   get size() {
     if(!this.#div) {
@@ -62,4 +67,14 @@ export class PostitDummy extends Postit {
   static isDummy(postit) {
     return postit.id == "dummy"
   }
+
+  /**
+   * インスタンス取得
+   * @returns {Postit}
+   */
+  static instance() {
+    return dummyPostit;
+  }
 }
+
+const dummyPostit = new PostitDummy();

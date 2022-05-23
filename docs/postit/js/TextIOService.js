@@ -1,4 +1,5 @@
 import {Postit} from "./Postit.js"
+import {Link} from "./Link.js"
 
 export class TextIOService {
   /** @type Postit[] */
@@ -33,14 +34,11 @@ export class TextIOService {
     data.links.forEach(v => this.links.push(v))
   }
 
-  
+
   static createInstance(rawData) {
     const postits = rawData.postits.map(v => new Postit(v.id, v.text, v.pos));
     const postitMap = toMap(postits, v => v.id);
-    const links = rawData.links.map(v => ({
-      startPostit: postitMap[v.startId], 
-      endPostit: postitMap[v.endId]
-    }));
+    const links = rawData.links.map(v => new Link(postitMap[v.startId], postitMap[v.endId]));
   
     return {postits, links};
   }

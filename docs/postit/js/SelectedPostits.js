@@ -92,5 +92,7 @@ export class SelectedPostits {
       selectedPostits.clear();
     }
   }
+
+  
   
 }

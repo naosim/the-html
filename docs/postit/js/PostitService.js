@@ -34,10 +34,9 @@ export class PostitService {
         .reverse() // 1つしかないはずだから意味ない
         .forEach(v => this.postits.splice(v, 1))
       
-
       // linkの削除
       const indexies = this.links
-        .map((v, i) => v.startPostit.id == targetPostit.id || v.endPostit.id == targetPostit.id ? i : -1)
+      .map((v, i) => v.has(targetPostit) ? i : -1)
         .filter(v => v >= 0)
         .reverse();
       indexies.forEach(v => this.links.splice(v, 1))
