@@ -1,4 +1,5 @@
 import {Postit, PostitDummy} from "./Postit.js"
+import {Link} from "./Link.js"
 
 export class PostitService {
   /** @type Postit[] */
@@ -10,7 +11,7 @@ export class PostitService {
   }
 
   createNewPostit(pos) {
-    const newPostit = new Postit(`${Date.now()}`, "", pos);
+    const newPostit = new Postit(`${Date.now()}`, "new", pos);
     this.postits.push(newPostit);
     return newPostit;
   }
@@ -57,7 +58,7 @@ export class PostitService {
   }
 
   addLink(startPostit, endPostit) {
-    this.links.push({startPostit, endPostit});
+    this.links.push(new Link(startPostit, endPostit));
   }
   
 }
