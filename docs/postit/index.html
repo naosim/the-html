@@ -245,6 +245,10 @@ var app = new Vue({
       this.calcSize();
       return newPostit;// ほんとはasyncが正しいかもしれない
     },
+    createNewSheet: function() {
+      this.clear();
+      this.createNewPostit({x: 100, y: 100});
+    },
     calcSize: function() {
       setTimeout(() => {
         this.$data.postits.forEach((v, i) => v.setDiv(this.$refs.postit[i]))
@@ -271,10 +275,6 @@ var app = new Vue({
       this.$data.editingLink.isEditing = false;
       this.$data.isFocusForText = false;
       this.$data.selectedPostits.clear();
-    },
-    createNewSheet: function() {
-      this.clear();
-      this.createNewPostit({x: 100, y: 100});
     },
     outputText: function() {
       const text = this.getTextIOService().outputText();
@@ -303,17 +303,9 @@ var app = new Vue({
         if(PostitDummy.isDummy(data.editingPostit)) {
           return;
         }
-        const pos = {
-          x: data.editingPostit.pos.x,
-          y: data.editingPostit.pos.y + data.editingPostit.size.height + 16,
-        }
-        const parent = this.$data.links.getOneEndPostit(data.editingPostit);// nullable
-        const startPostit = this.createNewPostit(pos);
-        if(parent) {
-          this.$data.links.push(new Link(startPostit, parent))
-        }
-        
-
+        const newPostit = this.getPostitService().createSidePostit(data.editingPostit);
+        this.toEditMode(newPostit);
+        this.calcSize();
         event.preventDefault()
       }
       if(event.code == "Tab") {// タブが押されたら、サブ付箋を作る

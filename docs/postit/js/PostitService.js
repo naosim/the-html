@@ -16,6 +16,19 @@ export class PostitService {
     return newPostit;
   }
 
+  createSidePostit(currentPostit) {
+    const pos = {
+      x: currentPostit.pos.x,
+      y: currentPostit.pos.y + currentPostit.size.height + 16,
+    }
+    const parentPostit = this.links.getOneEndPostit(currentPostit);// nullable
+    const postit = this.createNewPostit(pos);
+    if(parentPostit) {
+      this.links.push(new Link(postit, parentPostit))
+    }
+    return postit;
+  }
+
   createSubPostit(parentPostit) {
     const pos = {
       x: parentPostit.pos.x + parentPostit.size.width + 16,
@@ -23,7 +36,8 @@ export class PostitService {
     }
     const endPostit = parentPostit;
     const startPostit = this.createNewPostit(pos);
-    this.addLink(startPostit, endPostit);
+    // this.addLink(startPostit, endPostit);
+    this.links.push(new Link(startPostit, endPostit));
     return startPostit;
   }
 
