@@ -88,7 +88,7 @@
     </g>
 
     <path 
-      v-for="link in links" 
+      v-for="link in links.values" 
       v-bind:d="`M${link.getStartPoint().x},${link.getStartPoint().y} L${link.getEndPoint().x},${link.getEndPoint().y}`" 
       fill="none" stroke="black" stroke-width="2" marker-end="url(#m_ar)"
     />
@@ -309,7 +309,7 @@ var app = new Vue({
           y: data.editingPostit.pos.y + data.editingPostit.size.height + 16,
         }
         const endPostit = data.editingPostit;
-        const startPostit = this.createNewPostit(pos);          
+        const startPostit = this.createNewPostit(pos); 
         event.preventDefault()
       }
       if(event.code == "Tab") {// タブが押されたら、サブ付箋を作る

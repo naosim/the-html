@@ -39,3 +39,26 @@ export class Link {
     return this.startPostit.id == postit.id || this.endPostit.id == postit.id;
   }
 }
+
+export class Links {
+  /** @type Link[] */
+  values;
+  constructor(values) {
+    this.values = values;
+  }
+  push(link) {
+    this.values.push(link);
+  }
+  exclude(postit) {
+    const indexies = this.values
+      .map((v, i) => v.has(postit) ? i : -1)
+        .filter(v => v >= 0)
+        .reverse();
+      indexies.forEach(v => this.values.splice(v, 1))
+  }
+  clear() {
+    for(let i = this.values.length - 1; i >= 0; i--) {
+      this.values.splice(i, 1)
+    }
+  }
+}

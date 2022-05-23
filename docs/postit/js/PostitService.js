@@ -36,11 +36,12 @@ export class PostitService {
         .forEach(v => this.postits.splice(v, 1))
       
       // linkの削除
-      const indexies = this.links
-      .map((v, i) => v.has(targetPostit) ? i : -1)
-        .filter(v => v >= 0)
-        .reverse();
-      indexies.forEach(v => this.links.splice(v, 1))
+      this.links.exclude(targetPostit);
+      // const indexies = this.links
+      // .map((v, i) => v.has(targetPostit) ? i : -1)
+      //   .filter(v => v >= 0)
+      //   .reverse();
+      // indexies.forEach(v => this.links.splice(v, 1))
   }
 
   setPos(postit, x, y) {
@@ -52,9 +53,10 @@ export class PostitService {
     for(let i = this.postits.length - 1; i >= 0; i--) {
       this.postits.splice(i, 1)
     }
-    for(let i = this.links.length - 1; i >= 0; i--) {
-      this.links.splice(i, 1)
-    }
+    this.links.clear();
+    // for(let i = this.links.length - 1; i >= 0; i--) {
+    //   this.links.splice(i, 1)
+    // }
   }
 
   addLink(startPostit, endPostit) {
