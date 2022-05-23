@@ -303,13 +303,17 @@ var app = new Vue({
         if(PostitDummy.isDummy(data.editingPostit)) {
           return;
         }
-        
         const pos = {
           x: data.editingPostit.pos.x,
           y: data.editingPostit.pos.y + data.editingPostit.size.height + 16,
         }
-        const endPostit = data.editingPostit;
-        const startPostit = this.createNewPostit(pos); 
+        const parent = this.$data.links.getOneEndPostit(data.editingPostit);// nullable
+        const startPostit = this.createNewPostit(pos);
+        if(parent) {
+          this.$data.links.push(new Link(startPostit, parent))
+        }
+        
+
         event.preventDefault()
       }
       if(event.code == "Tab") {// タブが押されたら、サブ付箋を作る

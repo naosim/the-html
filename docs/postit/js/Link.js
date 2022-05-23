@@ -17,6 +17,8 @@ export class Link {
   }
 
   getEndPoint() {
+    // console.log(this.endPostit.id);
+    // console.log(this.endPostit);
     if(this.endPostit.size.width == 0 || this.endPostit.size.height == 0) {
       return this.endPostit.center
     }
@@ -43,11 +45,21 @@ export class Link {
 export class Links {
   /** @type Link[] */
   values;
+  #uniqMap = {}
   constructor(values) {
     this.values = values;
+    this.updateMap();
+  }
+  updateMap() {
+    this.#uniqMap = this.values.map(v => Links.uniqId(v)).reduce((memo, v) => {memo[v] = true; return memo}, {})
   }
   push(link) {
+    if(this.#uniqMap[Links.uniqId(link)]) {
+      console.log("同じ線がある");
+      return;
+    }
     this.values.push(link);
+    this.#uniqMap[Links.uniqId(link)] = true;
   }
   exclude(postit) {
     const indexies = this.values
@@ -55,10 +67,27 @@ export class Links {
         .filter(v => v >= 0)
         .reverse();
       indexies.forEach(v => this.values.splice(v, 1))
+    this.updateMap();
   }
+
   clear() {
     for(let i = this.values.length - 1; i >= 0; i--) {
       this.values.splice(i, 1)
     }
+    this.updateMap();
+  }
+
+  /**
+   * 引数の付箋から出る線が1つだけある場合はそれを返す。0または複数の場合はundefinedを返す。
+   * @param {Postit} postit 
+   */
+  getOneEndPostit(postit) {
+    const list = this.values.filter(v => v.startPostit.id == postit.id);
+    return list.length == 1 ? list[0].endPostit : undefined;
+
+  }
+
+  static uniqId(link) {
+    return `${link.startPostit.id}|${link.endPostit.id}`
   }
 }
