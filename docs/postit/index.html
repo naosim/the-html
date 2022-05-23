@@ -130,27 +130,6 @@ import {DragPostitService} from "./js/DragPostitService.js"
 import {SelectedPostits} from "./js/SelectedPostits.js"
 import {MouseMovement} from "./js/MouseMovement.js"
 const dummyPostit = new PostitDummy();//new Postit("dummy", "dummy", {x: 0, y : 0});
-// function isDummy(postit) {
-//   return postit.id == "dummy"
-// }
-
-function toMap(list, idFunc) {
-  return list.reduce((memo, v) => {
-    memo[idFunc(v)] = v;
-    return memo;
-  }, {})
-}
-
-function createInstance(rawData) {
-  const postits = rawData.postits.map(v => new Postit(v.id, v.text, v.pos));
-  const postitMap = toMap(postits, v => v.id);
-  const links = rawData.links.map(v => ({
-    startPostit: postitMap[v.startId], 
-    endPostit: postitMap[v.endId]
-  }));
-
-  return {postits, links};
-}
 
 const rawData = {
   postits: [
@@ -163,12 +142,10 @@ const rawData = {
   ]
 }
 
-
-
 const data = {
   message: 'Hello Vue!',
   mouseMovement: new MouseMovement(),
-  ...createInstance(rawData),
+  ...TextIOService.createInstance(rawData),
   selectedPostits: new SelectedPostits(dummyPostit),
   editingPostit: dummyPostit,
   editingLink: {
@@ -237,14 +214,8 @@ var app = new Vue({
       document.onmousemove = null
     },
     dragMouseDown: function (event, postit) {
-      const selectedPostits = this.$data.selectedPostits;
-      if(event.shiftKey) {
-        selectedPostits.select(postit);  
-      } else {
-        selectedPostits.selectOne(postit);
-      }
-      // selectedPostits.select(postit);
-      this.getDragPostitService().onStartDrag(event.clientX, event.clientY, postit);
+      this.getDragPostitService().onStartDrag(event.clientX, event.clientY, postit, event);
+      
       document.querySelector("textarea").focus();
 
       event.preventDefault()

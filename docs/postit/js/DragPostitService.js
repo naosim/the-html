@@ -13,8 +13,14 @@ export class DragPostitService {
     this.mouseMovement = data.mouseMovement;
     this.selectedPostits = data.selectedPostits;
   }
-  
-  onStartDrag(clientX, clientY, postit) {
+
+  onStartDrag(clientX, clientY, postit, event) {
+    if(event.shiftKey) {
+      this.selectedPostits.select(postit);  
+    } else {
+      this.selectedPostits.selectOne(postit);
+    }
+
     if(this.data.editingPostit.id != postit.id) {
       this.data.editingPostit.isEditing = false;// 前回の選択を外す
       this.data.editingPostit.updateCenter();
