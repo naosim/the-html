@@ -79,6 +79,7 @@
         v-bind:height="postit.size.height"
         fill="#ffa"
         stroke="#888"
+        v-bind:stroke-width="selectedPostits.values.length > 0 && selectedPostits.isSelected(postit) ? 4 : 1"
       />
       <text
         stroke="none" 
@@ -119,8 +120,6 @@
     <button v-on:click="createNewSheet">新規作成</button><br>
   </div>
 </div>
-
-
 
 <script type="module">
 import {Postit, PostitDummy} from "./js/Postit.js"

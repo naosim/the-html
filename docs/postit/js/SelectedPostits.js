@@ -1,13 +1,22 @@
 import {Postit, PostitDummy} from "./Postit.js"
 
+/**
+ * 選択中の付箋
+ */
 export class SelectedPostits {
   /** @type Postit[] */
   values;
   #map;
   constructor(dummyPostit) {
-    this.values = [dummyPostit]
+    this.values = [dummyPostit] // vueの$dataから参照されるため、初期値として何か1つ入れておく必要がある
     this.#map = {}
   }
+
+  /**
+   * 選択する
+   * @param {Postit} postit 
+   * @returns 
+   */
   select(postit) {
     if(this.#map[postit.id]) {
       return;
@@ -17,28 +26,46 @@ export class SelectedPostits {
     console.log(this.values.length);
   }
   clear() {
+    console.log("clear select");
     while(this.values.pop()) {
       // nop;
     }
     this.#map = {}
   }
+
+  /**
+   * 1つだけ選択する
+   * @param {Postit} postit 
+   */
   selectOne(postit) {
     this.clear();
     this.select(postit);
   }
+
+  /**
+   * 選択中か？
+   * @param {Postit} postit 
+   * @returns 
+   */
   isSelected(postit) {
     return !!this.#map[postit.id]
   }
+
   isMultiple() {
     return this.values.length >= 2;
   }
 
+  /**
+   * 選択中の付箋すべてを移動する
+   * @param {number} diffX 
+   * @param {number} diffY 
+   */
   move(diffX, diffY) {
     this.values.forEach(v => v.setPos(v.pos.x + diffX, v.pos.y + diffY))
   }
 
   /**
-   * 選択中のふせんをキー操作で動かす
+   * 選択中の付箋をキー操作で動かす
    * @param {*} event 
    */
   moveSelectedPostitIfKeyPressed(event) {
