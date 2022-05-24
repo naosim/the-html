@@ -17,7 +17,8 @@
     /* font-family: monospace; */
     font-family: 'M PLUS 1 Code', sans-serif;
     cursor:grab;
-    opacity: 0.8;
+    opacity: 0.1;
+    line-height: 20px;
   }
   .invisibleText {
     color: rgba(0, 0, 0, 0);
@@ -35,8 +36,11 @@
     position: absolute;
     font-size: 16px;
     /* opacity: 0.8; */
-    /* margin: 8px; */
-    padding: 8px;
+    margin: 0px;
+    margin-top: 6px;
+    margin-left: 6px;
+    padding: 2px;
+    /* padding: 8px; */
     line-height: 20px;
     overflow:hidden;
     background-color: rgba(0, 0, 0, 0);
@@ -97,7 +101,8 @@
         v-bind:x="postit.pos.x + 8"
         v-bind:y="postit.pos.y + index * textHeight + 23"
         font-size="16"
-        style="font-family: 'M PLUS 1 Code', sans-serif;"
+        style="font-family: 'M PLUS 1 Code', sans-serif;white-space:pre;"
+        v-show="editingPostit.id != postit.id || !isFocusForText"
         v-text="text"
       ></text>
     </g>
@@ -118,7 +123,7 @@
     v-bind:class="['postit']"
 
     @mousedown="dragMouseDown($event, postit)" 
-    v-text="postit.text.length > 0 ? postit.text : ' '"
+    v-text="postit.text"
   ></div>
 
   <div class="editingLink" v-bind:style="{ left: editingLink.pos.x - 8 + 'px', top: editingLink.pos.y - 8 + 'px' }" @mousedown="dragMouseDownForLink">●</div>
@@ -127,7 +132,7 @@
     v-bind:class="['textarea', isFocusForText ? '': 'invisible']"
     v-model="editingPostit.text" 
     v-on:focus="isFocusForText = true" v-on:blur="isFocusForText = false"
-    v-bind:style="{left: editingPostit.pos.x + 'px', top: editingPostit.pos.y + 'px', width: (editingPostit.text.length > 0 ? editingPostit.size.width : editingPostit.size.width) + 'px', height: (editingPostit.text.length > 0 ? editingPostit.size.height : editingPostit.size.height) + 'px' }"
+    v-bind:style="{left: editingPostit.pos.x + 'px', top: editingPostit.pos.y + 'px', width: (editingPostit.text.length > 0 ? editingPostit.size.width : editingPostit.size.width) - 6 + 'px', height: (editingPostit.text.length > 0 ? editingPostit.size.height : editingPostit.size.height) + 'px' }"
   ></textarea>
 
   <div class="right-toolbar">
@@ -176,7 +181,8 @@ const data = {
   },
   editingPostit: dummyPostit,
   isFocusForText: false,
-  textHeight: 20 // 定数
+  textHeight: 20, // 定数
+  refreshCount: 1
 };
 
 var collisionChecker = new CollisionChecker([]);
@@ -325,6 +331,10 @@ var app = new Vue({
 
       // 選択中のふせんをキー操作で動かす
       this.$data.selectedPostits.moveSelectedPostitIfKeyPressed(event);
+
+      if(event.code == "Enter") {
+        this.$data.refreshCount++;
+      }
       
       if(event.code == "Enter" && event.shiftKey) {
         if(PostitDummy.isDummy(data.editingPostit)) {
