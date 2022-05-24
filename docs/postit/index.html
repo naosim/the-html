@@ -330,7 +330,8 @@ var app = new Vue({
       this.$data.editingPostit = dummyPostit;
       this.$data.editingLink.startPostit = dummyPostit;
       this.$data.editingLink.endPostit = dummyPostit;
-      this.$data.editingLink.pos = {x: 0, y: 0};
+      this.$data.editingLink.pos.x = 0;
+      this.$data.editingLink.pos.y = 0;
       this.$data.editingLink.isEditing = false;
       this.$data.isFocusForText = false;
       this.$data.selectedPostits.clear();
