@@ -70,6 +70,19 @@ export class Links {
     this.updateMap();
   }
 
+  deleteLink(link) {
+    const id = Links.uniqId(link);
+    var index = -1;
+    for(let i = 0; i < this.values.length; i++) {
+      if(Links.uniqId(this.values[i]) == id) {
+        index = i;
+        break;
+      }
+    }
+    this.values.splice(index, 1);
+    this.updateMap();
+  }
+
   clear() {
     for(let i = this.values.length - 1; i >= 0; i--) {
       this.values.splice(i, 1)

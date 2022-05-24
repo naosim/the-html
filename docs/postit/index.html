@@ -109,7 +109,8 @@
 
     <path 
       v-for="link in links.values" 
-      v-bind:d="`M${link.getStartPoint().x},${link.getStartPoint().y} L${link.getEndPoint().x},${link.getEndPoint().y}`" 
+      v-bind:d="getLinePath(link)" 
+      v-on:click="clickLine($event, link)"
       fill="none" stroke="black" stroke-width="2" marker-end="url(#m_ar)"
     />
   </svg>
@@ -182,7 +183,8 @@ const data = {
   editingPostit: dummyPostit,
   isFocusForText: false,
   textHeight: 20, // 定数
-  refreshCount: 1
+  refreshCount: 1,
+  selectedLink: new Link(dummyPostit, dummyPostit)
 };
 
 var collisionChecker = new CollisionChecker([]);
@@ -191,6 +193,17 @@ var app = new Vue({
   el: '#app',
   data: data,
   methods: {
+    clickLine: function(event, link) {
+      console.log("click");
+      this.$data.selectedLink = link;
+      this.$data.isFocusForText = false;
+      this.$data.selectedPostits.clear();
+    },
+    getLinePath: function(link) {
+      const s = link.getStartPoint();
+      const e = link.getEndPoint();
+      return `M${s.x},${s.y} L${e.x},${e.y}`
+    },
     getPostitService: function() {
       return new PostitService(this.$data.postits, this.$data.links);
     },
@@ -289,7 +302,8 @@ var app = new Vue({
       if(PostitDummy.isDummy(this.$data.editingPostit)) {
         return;
       }
-      this.getPostitService().deletePostit(this.$data.editingPostit)
+      this.$data.selectedPostits.values.forEach(v => this.getPostitService().deletePostit(v));
+      // this.getPostitService().deletePostit(this.$data.editingPostit)
 
       this.$data.editingPostit = dummyPostit;
       this.calcSize();
@@ -334,6 +348,19 @@ var app = new Vue({
 
       if(event.code == "Enter") {
         this.$data.refreshCount++;
+      }
+
+      if(event.code == "Backspace" && !PostitDummy.isDummy(this.$data.selectedLink.startPostit)) {
+        if(!this.$data.isFocusForText && this.$data.selectedPostits.isNoSelected()) {
+          console.log("delete link");
+          console.log(confirm("いい？"));
+          this.$data.links.deleteLink(this.$data.selectedLink);
+          this.$data.selectedLink = new Link(dummyPostit, dummyPostit);
+        }
+      }
+
+      if(event.code == "Backspace" && event.shiftKey) {
+
       }
       
       if(event.code == "Enter" && event.shiftKey) {

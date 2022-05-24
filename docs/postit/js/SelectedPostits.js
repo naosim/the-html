@@ -51,6 +51,10 @@ export class SelectedPostits {
     return !!this.#map[postit.id]
   }
 
+  isNoSelected() {
+    return this.values.length == 0;
+  }
+
   isMultiple() {
     return this.values.length >= 2;
   }
