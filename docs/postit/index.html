@@ -81,7 +81,10 @@
     </defs> -->
     <!-- 矢印 -->
     <marker id="m_ar" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="strokeWidth" preserveAspectRatio="none" markerWidth="8" markerHeight="6" orient="auto-start-reverse">
-      <polygon points="0,0 0,10 6,5" id="ms"/>
+      <polygon points="2,2 2,8 6,5" fill="#555" />
+    </marker>
+    <marker id="m_ar_selected" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="strokeWidth" preserveAspectRatio="none" markerWidth="8" markerHeight="6" orient="auto-start-reverse">
+      <polygon points="2,2 2,8 6,5" fill="#e41" />
     </marker>
 
     <g v-for="postit in postits" >
@@ -111,7 +114,10 @@
       v-for="link in links.values" 
       v-bind:d="getLinePath(link)" 
       v-on:click="clickLine($event, link)"
-      fill="none" stroke="black" stroke-width="2" marker-end="url(#m_ar)"
+      fill="none" 
+      v-bind:stroke="selectedLinks.isSelected(link) ? '#e41' : '#555'" 
+      stroke-width="4" 
+      v-bind:marker-end="selectedLinks.isSelected(link) ? 'url(#m_ar_selected)' : 'url(#m_ar)'" marker-end-fill="red"
     />
   </svg>
   
@@ -155,6 +161,7 @@ import {SelectedPostits} from "./js/SelectedPostits.js"
 import {MouseMovement} from "./js/MouseMovement.js"
 import {Link} from "./js/Link.js"
 import {EditingLinkPos} from "./js/EditingLinkPos.js"
+import {Selected} from "./js/Selected.js"
 
 const dummyPostit = PostitDummy.instance();
 
@@ -184,7 +191,7 @@ const data = {
   isFocusForText: false,
   textHeight: 20, // 定数
   refreshCount: 1,
-  selectedLink: new Link(dummyPostit, dummyPostit)
+  selectedLinks: new Selected(new Link(dummyPostit, dummyPostit))
 };
 
 var collisionChecker = new CollisionChecker([]);
@@ -195,7 +202,12 @@ var app = new Vue({
   methods: {
     clickLine: function(event, link) {
       console.log("click");
-      this.$data.selectedLink = link;
+      if(event.shiftKey) {
+        this.$data.selectedLinks.select(link);
+      } else {
+        this.$data.selectedLinks.selectOne(link);
+      }
+      console.log(this.$data.selectedLinks.values.length);
       this.$data.isFocusForText = false;
       this.$data.selectedPostits.clear();
     },
@@ -217,6 +229,8 @@ var app = new Vue({
       this.editingLink.startPostit = this.editingPostit;
       this.editingLink.endPostit = dummyPostit;// ダミーをセットする
       this.editingLink.isEditing = true;
+
+      this.$data.selectedLinks.clear();
 
       // get the mouse cursor position at startup:
       this.mouseMovement.updateClientPos(event.clientX, event.clientY);
@@ -256,7 +270,8 @@ var app = new Vue({
     },
     dragMouseDown: function (event, postit) {
       this.getDragPostitService().onStartDrag(event.clientX, event.clientY, postit, event);
-      
+      this.$data.selectedLinks.clear();
+
       document.querySelector("textarea").focus();
 
       event.preventDefault()
@@ -350,18 +365,15 @@ var app = new Vue({
         this.$data.refreshCount++;
       }
 
-      if(event.code == "Backspace" && !PostitDummy.isDummy(this.$data.selectedLink.startPostit)) {
+      if(event.code == "Backspace" && !PostitDummy.isDummy(this.$data.selectedLinks.values[0].startPostit)) {
         if(!this.$data.isFocusForText && this.$data.selectedPostits.isNoSelected()) {
           console.log("delete link");
-          console.log(confirm("いい？"));
-          this.$data.links.deleteLink(this.$data.selectedLink);
-          this.$data.selectedLink = new Link(dummyPostit, dummyPostit);
+          console.log(confirm("矢印を削除します。よろしいですか？"));
+          this.$data.selectedLinks.forEach(v => this.$data.links.deleteLink(v))
+          this.$data.selectedLinks.clear();
         }
       }
 
-      if(event.code == "Backspace" && event.shiftKey) {
-
-      }
       
       if(event.code == "Enter" && event.shiftKey) {
         if(PostitDummy.isDummy(data.editingPostit)) {

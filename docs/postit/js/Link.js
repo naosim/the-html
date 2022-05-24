@@ -2,6 +2,7 @@ import {Postit} from "./Postit.js"
 import {calcCollisionPoint} from "./utils/calcCollisionPoint.js"
 
 export class Link {
+  id;
   /** @type Postit */
   startPostit;
   /** @type Postit */
@@ -12,6 +13,7 @@ export class Link {
    * @param {Postit} endPostit 
    */
   constructor(startPostit, endPostit) {
+    this.id = Link.uniqId(startPostit, endPostit);
     this.startPostit = startPostit;
     this.endPostit = endPostit;
   }
@@ -40,6 +42,10 @@ export class Link {
   has(postit) {
     return this.startPostit.id == postit.id || this.endPostit.id == postit.id;
   }
+
+  static uniqId(startPostit, endPostit) {
+    return `${startPostit.id}|${endPostit.id}`
+  }
 }
 
 export class Links {
@@ -51,15 +57,15 @@ export class Links {
     this.updateMap();
   }
   updateMap() {
-    this.#uniqMap = this.values.map(v => Links.uniqId(v)).reduce((memo, v) => {memo[v] = true; return memo}, {})
+    this.#uniqMap = this.values.map(v => v.id).reduce((memo, v) => {memo[v] = true; return memo}, {})
   }
   push(link) {
-    if(this.#uniqMap[Links.uniqId(link)]) {
+    if(this.#uniqMap[link.id]) {
       console.log("同じ線がある");
       return;
     }
     this.values.push(link);
-    this.#uniqMap[Links.uniqId(link)] = true;
+    this.#uniqMap[link.id] = true;
   }
   exclude(postit) {
     const indexies = this.values
@@ -71,10 +77,10 @@ export class Links {
   }
 
   deleteLink(link) {
-    const id = Links.uniqId(link);
+    const id = link.id;
     var index = -1;
     for(let i = 0; i < this.values.length; i++) {
-      if(Links.uniqId(this.values[i]) == id) {
+      if(this.values[i].id == id) {
         index = i;
         break;
       }
