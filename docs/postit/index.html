@@ -130,7 +130,7 @@
     v-bind:class="['postit']"
 
     @mousedown="dragMouseDown($event, postit)" 
-    v-text="postit.text"
+    v-text="toDisplayText(postit.text)"
   ></div>
 
   <div class="editingLink" v-bind:style="{ left: editingLink.pos.x - 8 + 'px', top: editingLink.pos.y - 8 + 'px' }" @mousedown="dragMouseDownForLink">●</div>
@@ -291,8 +291,7 @@ var app = new Vue({
 
       // link
       this.$data.editingLink.pos.updateWithPostit(postit);
-
-      this.calcSize();
+      this.updateEditingPostitSize();
     },
     createNewPostit: function(pos) {
       const newPostit = this.getPostitService().createNewPostit(pos);
@@ -309,7 +308,7 @@ var app = new Vue({
     },
     calcSize: function() {
       setTimeout(() => {
-        this.$data.postits.forEach((v, i) => v.setDiv(this.$refs.postit[i]))
+        this.$data.postits.forEach((v, i) => v.updateSize(this.$refs.postit[i]))
       }, 1); // ちょっと待てばdivが作られるだろうって発想
     },
     deletePostit: function() {
@@ -348,11 +347,36 @@ var app = new Vue({
       this.getTextIOService().inputText(text);
       this.calcSize();
     },
+    updateEditingPostitSize() {
+      if(PostitDummy.isDummy(this.$data.editingPostit)) {
+        return;
+      }
+      setTimeout(v => {
+        const div = document.getElementById(this.$data.editingPostit.id);
+        this.$data.editingPostit.updateSize(div);
+      }, 1)
+      
+    },
+    toDisplayText(text) {
+      if(text.length == 0) {
+        return 'new'
+      }
+      if(text[text.length - 1] == '\n') {
+        return text + ' '
+      }
+      return text;
+    }
   },
   mounted: function() {
     const ref = this.$refs;
-    this.$data.postits.forEach((v, i) => v.setDiv(this.$refs.postit[i]))
-    this.$refs.textarea.addEventListener('compositionend', () => this.$data.postits.forEach((v, i) => v.setDiv(this.$refs.postit[i])));
+    this.$data.postits.forEach((v, i) => v.updateSize(this.$refs.postit[i]))
+    setInterval(()=> {
+      if(!this.$data.isFocusForText) {
+        return;
+      }
+      this.updateEditingPostitSize();
+    }, 1000)
+    // this.$refs.textarea.addEventListener('compositionend', () => this.$data.postits.forEach((v, i) => v.setDiv(this.$refs.postit[i])));
     // this.$refs.textarea.addEventListener('compositionend', () => this.$data.postits.forEach((v, i) => v.setDiv(this.$refs.postit[i])));
 
     console.log("mounted");
@@ -366,7 +390,7 @@ var app = new Vue({
         this.$data.refreshCount++;
       }
 
-      if(event.code == "Backspace" && !PostitDummy.isDummy(this.$data.selectedLinks.values[0].startPostit)) {
+      if(event.code == "Backspace" && !this.$data.selectedLinks.isNoSelected() && !PostitDummy.isDummy(this.$data.selectedLinks.values[0].startPostit)) {
         if(!this.$data.isFocusForText && this.$data.selectedPostits.isNoSelected()) {
           console.log("delete link");
           console.log(confirm("矢印を削除します。よろしいですか？"));

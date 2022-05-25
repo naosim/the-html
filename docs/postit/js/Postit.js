@@ -2,6 +2,7 @@ export class Postit {
   #div;
   pos = {x: 0, y: 0};
   center = {x: 0, y: 0};
+  size = {width: 0, height: 0};
   isDiv = false; // vueに更新を気づいてもらうためのフラグ
   constructor(id, text, pos) {
     this.id = id;
@@ -10,15 +11,16 @@ export class Postit {
     this.pos.y = pos.y;
   }
 
-  get size() {
-    if(!this.#div) {
+  updateSize(div) {
+    if(!div) {
       // throw new Error("サイズ未確定 " + this.id);
-      return { width: 0, height: 0 }
+      this.size.width = 0;
+    this.size.height = 0;
     }
-    return {
-      width: this.#div.clientWidth,
-      height: this.#div.clientHeight
-    }
+    
+    this.size.width = div.clientWidth;
+    this.size.height = div.clientHeight;
+    this.updateCenter();
   }
   get rightBottom() {
     return {
@@ -31,15 +33,15 @@ export class Postit {
     this.pos.y = y;
     this.updateCenter();    
   }
-  setDiv(div) {
-    if(!div) {
-      throw new Error("div is undefined");
-    }
-    // console.log(div);
-    this.#div = div;
-    this.updateCenter();
-    this.isDiv = true;
-  }
+  // setDiv(div) {
+  //   if(!div) {
+  //     throw new Error("div is undefined");
+  //   }
+  //   // console.log(div);
+  //   this.#div = div;
+  //   this.updateCenter();
+  //   this.isDiv = true;
+  // }
   updateCenter() {
     this.center.x = this.pos.x + this.size.width / 2;
     this.center.y = this.pos.y + this.size.height / 2;

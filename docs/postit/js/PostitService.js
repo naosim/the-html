@@ -11,7 +11,7 @@ export class PostitService {
   }
 
   createNewPostit(pos) {
-    const newPostit = new Postit(`${Date.now()}`, "new", pos);
+    const newPostit = new Postit(`${Date.now()}`, "", pos);
     this.postits.push(newPostit);
     return newPostit;
   }
