@@ -2,13 +2,28 @@
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
 
-class Postit {
+class DPostit {
+    constructor(id, text, pos){
+        this.id = id;
+        this.text = text;
+        this.pos = pos;
+    }
+    move(pos) {
+        this.pos.x = pos.x;
+        this.pos.y = pos.y;
+    }
+    moveWithDiff(diff) {
+        this.pos.x += diff.diffX;
+        this.pos.y += diff.diffY;
+    }
+    updateText(text) {
+        this.text = text;
+    }
     id;
     text;
-    pos = {
-        x: 0,
-        y: 0
-    };
+    pos;
+}
+class PostitView extends DPostit {
     center = {
         x: 0,
         y: 0
@@ -18,12 +33,6 @@ class Postit {
         height: 0
     };
     isDiv = false;
-    constructor(id, text, pos){
-        this.id = id;
-        this.text = text;
-        this.pos.x = pos.x;
-        this.pos.y = pos.y;
-    }
     updateSize(div) {
         if (!div) {
             this.size.width = 0;
@@ -40,8 +49,10 @@ class Postit {
         };
     }
     setPos(x, y) {
-        this.pos.x = x;
-        this.pos.y = y;
+        super.move({
+            x,
+            y
+        });
         this.updateCenter();
     }
     updateCenter() {
@@ -49,7 +60,7 @@ class Postit {
         this.center.y = this.pos.y + this.size.height / 2;
     }
 }
-class PostitDummy extends Postit {
+class PostitDummy extends PostitView {
     constructor(){
         super("dummy", "dummy", {
             x: 12,
@@ -64,6 +75,24 @@ class PostitDummy extends Postit {
     }
 }
 const dummyPostit = new PostitDummy();
+class DLink {
+    id;
+    constructor(startPostit, endPostit){
+        this.startPostit = startPostit;
+        this.endPostit = endPostit;
+        this.id = DLink.uniqId(startPostit, endPostit);
+        this.startPostit = startPostit;
+        this.endPostit = endPostit;
+    }
+    has(postitId) {
+        return this.startPostit.id == postitId || this.endPostit.id == postitId;
+    }
+    static uniqId(startPostit, endPostit) {
+        return `${startPostit.id}|${endPostit.id}`;
+    }
+    startPostit;
+    endPostit;
+}
 function calcCollisionPoint(point, rect) {
     const center = {
         x: rect.pos.x + rect.size.width / 2,
@@ -112,85 +141,26 @@ function isInRange(v, start, end) {
 function length(pos1, pos2) {
     return Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2);
 }
-class Link {
-    id;
-    startPostit;
-    endPostit;
-    constructor(startPostit, endPostit){
-        this.id = Link.uniqId(startPostit, endPostit);
-        this.startPostit = startPostit;
-        this.endPostit = endPostit;
+class LinkView extends DLink {
+    constructor(startPostitView, endPostitView){
+        super(startPostitView, endPostitView);
+        this.startPostitView = startPostitView;
+        this.endPostitView = endPostitView;
     }
     getEndPoint() {
-        if (this.endPostit.size.width == 0 || this.endPostit.size.height == 0) {
-            return this.endPostit.center;
+        if (this.startPostitView.size.width == 0 || this.endPostitView.size.height == 0) {
+            return this.endPostitView.center;
         }
-        return calcCollisionPoint(this.startPostit.center, this.endPostit);
+        return calcCollisionPoint(this.startPostitView.center, this.endPostitView);
     }
     getStartPoint() {
-        if (this.startPostit.size.width == 0 || this.startPostit.size.height == 0) {
-            return this.startPostit.center;
+        if (this.startPostitView.size.width == 0 || this.startPostitView.size.height == 0) {
+            return this.startPostitView.center;
         }
-        return calcCollisionPoint(this.endPostit.center, this.startPostit);
+        return calcCollisionPoint(this.endPostitView.center, this.startPostitView);
     }
-    has(postit) {
-        return this.startPostit.id == postit.id || this.endPostit.id == postit.id;
-    }
-    static uniqId(startPostit, endPostit) {
-        return `${startPostit.id}|${endPostit.id}`;
-    }
-}
-class Links {
-    values;
-    #uniqMap = {};
-    constructor(values){
-        this.values = values;
-        this.updateMap();
-    }
-    updateMap() {
-        this.#uniqMap = this.values.map((v)=>v.id).reduce((memo, v)=>{
-            memo[v] = true;
-            return memo;
-        }, {});
-    }
-    push(link) {
-        if (this.#uniqMap[link.id]) {
-            console.log("同じ線がある");
-            return;
-        }
-        this.values.push(link);
-        this.#uniqMap[link.id] = true;
-    }
-    exclude(postit) {
-        const indexies = this.values.map((v, i)=>v.has(postit) ? i : -1).filter((v)=>v >= 0).reverse();
-        indexies.forEach((v)=>this.values.splice(v, 1));
-        this.updateMap();
-    }
-    deleteLink(link) {
-        const id = link.id;
-        var index = -1;
-        for(let i = 0; i < this.values.length; i++){
-            if (this.values[i].id == id) {
-                index = i;
-                break;
-            }
-        }
-        this.values.splice(index, 1);
-        this.updateMap();
-    }
-    clear() {
-        for(let i = this.values.length - 1; i >= 0; i--){
-            this.values.splice(i, 1);
-        }
-        this.updateMap();
-    }
-    getOneEndPostit(postit) {
-        const list = this.values.filter((v)=>v.startPostit.id == postit.id);
-        return list.length == 1 ? list[0].endPostit : undefined;
-    }
-    static uniqId(link) {
-        return `${link.startPostit.id}|${link.endPostit.id}`;
-    }
+    startPostitView;
+    endPostitView;
 }
 class PostitService {
     constructor(postits, links){
@@ -198,8 +168,8 @@ class PostitService {
         this.links = links;
     }
     createNewPostit(pos) {
-        const newPostit = new Postit(`${Date.now()}`, "", pos);
-        this.postits.push(newPostit);
+        const newPostit = new PostitView(`${Date.now()}`, "", pos);
+        this.postits.add(newPostit);
         return newPostit;
     }
     createNoLinkPostit(currentPostit) {
@@ -215,10 +185,10 @@ class PostitService {
             x: currentPostit.pos.x,
             y: currentPostit.pos.y + currentPostit.size.height + 16
         };
-        const parentPostit = this.links.getOneEndPostit(currentPostit);
+        const parentPostit = this.links.getOneEndPostit(currentPostit.id);
         const postit = this.createNewPostit(pos);
         if (parentPostit) {
-            this.links.push(new Link(postit, parentPostit));
+            this.links.add(new LinkView(postit, parentPostit));
         }
         return postit;
     }
@@ -229,24 +199,23 @@ class PostitService {
         };
         const endPostit = parentPostit;
         const startPostit = this.createNewPostit(pos);
-        this.links.push(new Link(startPostit, endPostit));
+        this.links.add(new LinkView(startPostit, endPostit));
         return startPostit;
     }
     deletePostit(targetPostit) {
-        this.postits.map((v, i)=>v.id == targetPostit.id ? i : -1).filter((v)=>v >= 0).reverse().forEach((v)=>this.postits.splice(v, 1));
-        this.links.exclude(targetPostit);
+        this.postits.delete(targetPostit.id);
     }
-    setPos(postit, x, y) {
-        postit.setPos(x, y);
+    move(postit, x, y) {
+        this.postits.move(postit.id, {
+            x,
+            y
+        });
     }
     clearAll() {
-        for(let i = this.postits.length - 1; i >= 0; i--){
-            this.postits.splice(i, 1);
-        }
-        this.links.clear();
+        this.postits.clearAll();
     }
     addLink(startPostit, endPostit) {
-        this.links.push(new Link(startPostit, endPostit));
+        this.links.add(new LinkView(startPostit, endPostit));
     }
     postits;
     links;
@@ -269,13 +238,92 @@ class CollisionChecker {
         });
     }
 }
+class DLinks {
+    #uniqMap;
+    constructor(values){
+        this.values = values;
+        this.#uniqMap = {};
+        this.updateMap();
+    }
+    updateMap() {
+        this.#uniqMap = this.values.map((v)=>v.id).reduce((memo, v)=>{
+            memo[v] = true;
+            return memo;
+        }, {});
+    }
+    findByStartPostit(startPostitId) {}
+    add(link) {
+        this.values.push(link);
+        this.updateMap();
+    }
+    exclude(postitId) {
+        const indexies = this.values.map((v, i)=>v.has(postitId) ? i : -1).filter((v)=>v >= 0).reverse();
+        indexies.forEach((v)=>this.values.splice(v, 1));
+        this.updateMap();
+    }
+    delete(linkId) {
+        var index = -1;
+        for(let i = 0; i < this.values.length; i++){
+            if (this.values[i].id == linkId) {
+                index = i;
+                break;
+            }
+        }
+        this.values.splice(index, 1);
+        this.updateMap();
+    }
+    getOneEndPostit(startPostitId) {
+        const list = this.values.filter((v)=>v.startPostit.id == startPostitId);
+        return list.length == 1 ? list[0].endPostit : undefined;
+    }
+    values;
+}
+class DPostits {
+    #map;
+    constructor(values, links){
+        this.values = values;
+        this.links = links;
+        this.#map = values.reduce((memo, v)=>{
+            memo[v.id] = v;
+            return memo;
+        }, {});
+    }
+    add(postit) {
+        this.values.push(postit);
+        this.#map[postit.id] = postit;
+    }
+    delete(postitId) {
+        this.values.map((v, i)=>v.id == postitId ? i : -1).filter((v)=>v >= 0).reverse().forEach((v)=>this.values.splice(v, 1));
+        this.links.exclude(postitId);
+    }
+    clearAll() {
+        this.values.map((v, i)=>({
+                v: v,
+                i: i
+            })).reverse().forEach((p, i)=>{
+            this.values.splice(p.i, 1);
+            this.links.exclude(p.v.id);
+        });
+    }
+    move(postitId, pos) {
+        this.#map[postitId].move(pos);
+    }
+    moveWithDiff(postitId, diff) {
+        this.#map[postitId].moveWithDiff(diff);
+    }
+    updateText(postitId, text) {
+        this.#map[postitId].updateText(text);
+    }
+    values;
+    links;
+}
 class TextIOService {
     constructor(postits, links){
         this.postits = postits;
         this.links = links;
     }
     outputText() {
-        const postits = this.postits.map((v)=>({
+        const postitDatas = this.postits.values.map((v)=>({
                 id: v.id,
                 text: v.text,
                 pos: {
@@ -283,28 +331,21 @@ class TextIOService {
                     y: v.pos.y
                 }
             }));
-        const links = this.links.values.map((v)=>({
+        const linkDatas = this.links.values.map((v)=>({
                 startId: v.startPostit.id,
                 endId: v.endPostit.id
             }));
         const output = {
-            postits,
-            links
+            postits: postitDatas,
+            links: linkDatas
         };
         return JSON.stringify(output, null, '  ');
     }
-    inputText(text) {
-        const rawData1 = JSON.parse(text);
-        const data1 = TextIOService.createInstance(rawData1);
-        const postits = data1.postits;
-        const links = data1.links;
-        postits.forEach((v)=>this.postits.push(v));
-        links.values.forEach((v)=>this.links.push(v));
-    }
-    static createInstance(rawData2) {
-        const postits = rawData2.postits.map((v)=>new Postit(v.id, v.text, v.pos));
-        const postitMap = toMap(postits, (v)=>v.id);
-        const links = new Links(rawData2.links.map((v)=>new Link(postitMap[v.startId], postitMap[v.endId])));
+    static createInstance(rawData1) {
+        const postitViews = rawData1.postits.map((v)=>new PostitView(v.id, v.text, v.pos));
+        const postitMap = toMap(postitViews, (v)=>v.id);
+        const links = new DLinks(rawData1.links.map((v)=>new LinkView(postitMap[v.startId], postitMap[v.endId])));
+        const postits = new DPostits(postitViews, links);
         return {
             postits,
             links
@@ -323,10 +364,10 @@ class DragPostitService {
     data;
     mouseMovement;
     selectedPostits;
-    constructor(data2){
-        this.data = data2;
-        this.mouseMovement = data2.mouseMovement;
-        this.selectedPostits = data2.selectedPostits;
+    constructor(data1){
+        this.data = data1;
+        this.mouseMovement = data1.mouseMovement;
+        this.selectedPostits = data1.selectedPostits;
     }
     onStartDrag(clientX, clientY, postit, event) {
         if (event.shiftKey) {
@@ -511,7 +552,7 @@ const data = {
     isFocusForText: false,
     textHeight: 20,
     refreshCount: 1,
-    selectedLinks: new Selected(new Link(dummyPostit1, dummyPostit1))
+    selectedLinks: new Selected(new LinkView(dummyPostit1, dummyPostit1))
 };
 var collisionChecker = new CollisionChecker([]);
 var app = new Vue({
@@ -549,7 +590,7 @@ var app = new Vue({
             this.editingLink.isEditing = true;
             this.$data.selectedLinks.clear();
             this.mouseMovement.updateClientPos(event1.clientX, event1.clientY);
-            const postits = this.$data.postits;
+            const postits = this.$data.postits.values;
             postits.forEach((v)=>v.updateCenter());
             collisionChecker = new CollisionChecker(postits);
             event1.preventDefault();
@@ -570,7 +611,7 @@ var app = new Vue({
         },
         closeLinkDrag () {
             if (!PostitDummy.isDummy(this.editingLink.startPostit) && !PostitDummy.isDummy(this.editingLink.endPostit)) {
-                this.links.push(new Link(this.editingLink.startPostit, this.editingLink.endPostit));
+                this.links.add(new LinkView(this.editingLink.startPostit, this.editingLink.endPostit));
                 this.$data.editingLink.pos.updateWithPostit(this.editingLink.startPostit);
             }
             document.onmouseup = null;
@@ -616,7 +657,7 @@ var app = new Vue({
         },
         calcSize: function() {
             setTimeout(()=>{
-                this.$data.postits.forEach((v, i)=>v.updateSize(this.$refs.postit[i]));
+                this.$data.postits.values.forEach((v, i)=>v.updateSize(this.$refs.postit[i]));
             }, 1);
         },
         deletePostit: function() {
@@ -672,7 +713,7 @@ var app = new Vue({
     },
     mounted: function() {
         this.$refs;
-        this.$data.postits.forEach((v, i)=>v.updateSize(this.$refs.postit[i]));
+        this.$data.postits.values.forEach((v, i)=>v.updateSize(this.$refs.postit[i]));
         setInterval(()=>{
             if (!this.$data.isFocusForText) {
                 return;
@@ -690,7 +731,7 @@ var app = new Vue({
                 if (!this.$data.isFocusForText && this.$data.selectedPostits.isNoSelected()) {
                     console.log("delete link");
                     console.log(confirm("矢印を削除します。よろしいですか？"));
-                    this.$data.selectedLinks.forEach((v)=>this.$data.links.deleteLink(v));
+                    this.$data.selectedLinks.forEach((v)=>this.$data.links.delete(v.id));
                     this.$data.selectedLinks.clear();
                 }
             }

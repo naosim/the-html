@@ -1,17 +1,21 @@
-import {Postit, PostitDummy, PostitPrime} from "./Postit.ts"
-import {Link, Links} from "./Link.ts"
+import {PostitView, PostitDummy, PostitPrime} from "./PostitView.ts"
+import {LinkView} from "./LinkView.ts"
+import { DLinks } from "./domain/link/DLinks.ts";
+import { DLink } from "./domain/link/DLink.ts";
+import { DPostit } from "./domain/postit/DPostit.ts";
+import { DPostits } from "./domain/postit/DPostits.ts";
 
 export class PostitService {
-  constructor(public postits: Postit[], public links: Links) {
+  constructor(public postits: DPostits, public links: DLinks) {
   }
 
   createNewPostit(pos: {x: number, y: number}) {
-    const newPostit = new Postit(`${Date.now()}`, "", pos);
-    this.postits.push(newPostit);
+    const newPostit = new PostitView(`${Date.now()}`, "", pos);
+    this.postits.add(newPostit);
     return newPostit;
   }
 
-  createNoLinkPostit(currentPostit: Postit) {
+  createNoLinkPostit(currentPostit: PostitView) {
     const pos = {
       x: currentPostit.pos.x,
       y: currentPostit.pos.y + currentPostit.size.height + 16,
@@ -20,20 +24,20 @@ export class PostitService {
     return postit;
   }
 
-  createSidePostit(currentPostit: Postit) {
+  createSidePostit(currentPostit: PostitView) {
     const pos = {
       x: currentPostit.pos.x,
       y: currentPostit.pos.y + currentPostit.size.height + 16,
     }
-    const parentPostit = this.links.getOneEndPostit(currentPostit);// nullable
+    const parentPostit = this.links.getOneEndPostit(currentPostit.id);// nullable
     const postit = this.createNewPostit(pos);
     if(parentPostit) {
-      this.links.push(new Link(postit, parentPostit))
+      this.links.add(new LinkView(postit, parentPostit as PostitView)) // キャスト
     }
     return postit;
   }
 
-  createSubPostit(parentPostit: Postit) {
+  createSubPostit(parentPostit: PostitView) {
     const pos = {
       x: parentPostit.pos.x + parentPostit.size.width + 16,
       y: parentPostit.pos.y + 16,
@@ -41,36 +45,24 @@ export class PostitService {
     const endPostit = parentPostit;
     const startPostit = this.createNewPostit(pos);
     // this.addLink(startPostit, endPostit);
-    this.links.push(new Link(startPostit, endPostit));
+    this.links.add(new LinkView(startPostit, endPostit));
     return startPostit;
   }
 
-  deletePostit(targetPostit: PostitPrime) {
-    // 付箋の削除
-    this.postits
-        .map((v, i) => v.id == targetPostit.id ? i : -1)
-        .filter(v => v >= 0)
-        .reverse() // 1つしかないはずだから意味ない
-        .forEach(v => this.postits.splice(v, 1))
-      
-      // linkの削除
-      this.links.exclude(targetPostit);
+  deletePostit(targetPostit: DPostit) {
+    this.postits.delete(targetPostit.id);
   }
 
-  setPos(postit: PostitPrime, x: number, y: number) {
-    postit.setPos(x, y);
+  move(postit: DPostit, x: number, y: number) {
+    this.postits.move(postit.id, {x, y})
   }
 
   clearAll() {
-    // 一気に消せるかも
-    for(let i = this.postits.length - 1; i >= 0; i--) {
-      this.postits.splice(i, 1)
-    }
-    this.links.clear();
+    this.postits.clearAll();
   }
 
-  addLink(startPostit: Postit, endPostit: Postit) {
-    this.links.push(new Link(startPostit, endPostit));
+  addLink(startPostit: PostitView, endPostit: PostitView) {
+    this.links.add(new LinkView(startPostit, endPostit));
   }
   
 }

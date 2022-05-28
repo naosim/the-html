@@ -1,10 +1,10 @@
-import { Postit } from "./Postit.ts";
+import { PostitView } from "./PostitView.ts";
 
 export class CollisionChecker {
   /** @type Postit[] */
   postits;
   
-  constructor(postits: Postit[]) {
+  constructor(postits: PostitView[]) {
     this.postits = postits;
   }
 

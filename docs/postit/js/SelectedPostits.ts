@@ -1,12 +1,12 @@
-import {Postit, PostitPrime} from "./Postit.ts"
+import {PostitView, PostitPrime} from "./PostitView.ts"
 
 /**
  * 選択中の付箋
  */
 export class SelectedPostits {
-  values: Postit[];
-  #map: {[key: string]: Postit};
-  constructor(dummyPostit: Postit) {
+  values: PostitView[];
+  #map: {[key: string]: PostitView};
+  constructor(dummyPostit: PostitView) {
     this.values = [dummyPostit] // vueの$dataから参照されるため、初期値として何か1つ入れておく必要がある
     this.#map = {}
   }
@@ -16,7 +16,7 @@ export class SelectedPostits {
    * @param {Postit} postit 
    * @returns 
    */
-  select(postit: Postit) {
+  select(postit: PostitView) {
     if(this.#map[postit.id]) {
       return;
     }
@@ -36,7 +36,7 @@ export class SelectedPostits {
    * 1つだけ選択する
    * @param {Postit} postit 
    */
-  selectOne(postit: Postit) {
+  selectOne(postit: PostitView) {
     this.clear();
     this.select(postit);
   }
@@ -46,7 +46,7 @@ export class SelectedPostits {
    * @param {Postit} postit 
    * @returns 
    */
-  isSelected(postit: Postit) {
+  isSelected(postit: PostitView) {
     return !!this.#map[postit.id]
   }
 

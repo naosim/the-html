@@ -11,6 +11,10 @@ export class DLinks {
     this.#uniqMap = this.values.map(v => v.id).reduce((memo, v) => {memo[v] = true; return memo}, {} as {[key:string]: boolean})
   }
 
+  findByStartPostit(startPostitId: string) {
+
+  }
+
   add(link: DLink) {
     this.values.push(link);
     this.updateMap();
@@ -38,5 +42,13 @@ export class DLinks {
     }
     this.values.splice(index, 1);
     this.updateMap();
+  }
+
+  /**
+   * 引数の付箋から出る線が1つだけある場合はそれを返す。0または複数の場合はundefinedを返す。
+   */
+   getOneEndPostit(startPostitId: string): DPostit | undefined {
+    const list = this.values.filter(v => v.startPostit.id == startPostitId);
+    return list.length == 1 ? list[0].endPostit : undefined;
   }
 }

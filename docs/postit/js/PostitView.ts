@@ -9,7 +9,7 @@ export interface PostitPrime {
   pos: Pos;
   setPos(x: number, y: number): void;
 }
-export class Postit extends DPostit implements PostitPrime  {
+export class PostitView extends DPostit implements PostitPrime  {
   center: Pos = {x: 0, y: 0};
   size: Size = {width: 0, height: 0};
   isDiv = false; // vueに更新を気づいてもらうためのフラグ
@@ -40,7 +40,7 @@ export class Postit extends DPostit implements PostitPrime  {
     this.center.y = this.pos.y + this.size.height / 2;
   }
 }
-export class PostitDummy extends Postit {
+export class PostitDummy extends PostitView {
   constructor() {
     super("dummy", "dummy", {x: 12, y: 12})
   }
@@ -50,15 +50,11 @@ export class PostitDummy extends Postit {
    * @param {Postit} postit 
    * @returns 
    */
-  static isDummy(postit: Postit) {
+  static isDummy(postit: DPostit) {
     return postit.id == "dummy"
   }
 
-  /**
-   * インスタンス取得
-   * @returns {Postit}
-   */
-  static instance() {
+  static instance(): PostitView {
     return dummyPostit;
   }
 }

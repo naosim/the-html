@@ -30,6 +30,16 @@ export class DPostits {
       this.links.exclude(postitId);
   }
 
+  clearAll() {
+    this.values
+        .map((v, i) => ({v: v, i: i}))
+        .reverse()
+        .forEach((p, i) => {
+          this.values.splice(p.i, 1);
+          this.links.exclude(p.v.id);
+        })
+  }
+
   move(postitId: string, pos: {x: number, y: number}){
     this.#map[postitId].move(pos);
   }

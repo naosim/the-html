@@ -1,11 +1,11 @@
-import {Postit, PostitDummy} from "./Postit.ts"
+import {PostitView, PostitDummy} from "./PostitView.ts"
 import {PostitService} from "./PostitService.ts"
 import {CollisionChecker} from "./CollisionChecker.ts"
 import {TextIOService} from "./TextIOService.ts"
 import {DragPostitService} from "./DragPostitService.ts"
 import {SelectedPostits} from "./SelectedPostits.ts"
 import {MouseMovement} from "./MouseMovement.ts"
-import {Link} from "./Link.ts"
+import {LinkView} from "./LinkView.ts"
 import {EditingLinkPos} from "./EditingLinkPos.ts"
 import {Selected} from "./Selected.ts"
 
@@ -37,7 +37,7 @@ const data = {
   isFocusForText: false,
   textHeight: 20, // 定数
   refreshCount: 1,
-  selectedLinks: new Selected(new Link(dummyPostit, dummyPostit))
+  selectedLinks: new Selected(new LinkView(dummyPostit, dummyPostit))
 };
 
 var collisionChecker = new CollisionChecker([]);
@@ -82,7 +82,7 @@ var app = new Vue({
       this.mouseMovement.updateClientPos(event.clientX, event.clientY);
 
       /** @type Postit[] */
-      const postits = this.$data.postits;
+      const postits = this.$data.postits.values;
       postits.forEach(v => v.updateCenter())
       collisionChecker = new CollisionChecker(postits);
 
@@ -105,7 +105,7 @@ var app = new Vue({
     },
     closeLinkDrag () {
       if(!PostitDummy.isDummy(this.editingLink.startPostit) && !PostitDummy.isDummy(this.editingLink.endPostit)) {
-        this.links.push(new Link(
+        this.links.add(new LinkView(
           this.editingLink.startPostit,
           this.editingLink.endPostit
         ))
@@ -156,7 +156,7 @@ var app = new Vue({
     },
     calcSize: function() {
       setTimeout(() => {
-        this.$data.postits.forEach((v, i) => v.updateSize(this.$refs.postit[i]))
+        this.$data.postits.values.forEach((v, i) => v.updateSize(this.$refs.postit[i]))
       }, 1); // ちょっと待てばdivが作られるだろうって発想
     },
     deletePostit: function() {
@@ -213,11 +213,11 @@ var app = new Vue({
         return text + ' '
       }
       return text;
-    }
+    },
   },
   mounted: function() {
     const ref = this.$refs;
-    this.$data.postits.forEach((v, i) => v.updateSize(this.$refs.postit[i]))
+    this.$data.postits.values.forEach((v, i) => v.updateSize(this.$refs.postit[i]))
     setInterval(()=> {
       if(!this.$data.isFocusForText) {
         return;
@@ -242,7 +242,7 @@ var app = new Vue({
         if(!this.$data.isFocusForText && this.$data.selectedPostits.isNoSelected()) {
           console.log("delete link");
           console.log(confirm("矢印を削除します。よろしいですか？"));
-          this.$data.selectedLinks.forEach(v => this.$data.links.deleteLink(v))
+          this.$data.selectedLinks.forEach(v => this.$data.links.delete(v.id))
           this.$data.selectedLinks.clear();
         }
       }
