@@ -1,4 +1,4 @@
-import {PostitView, PostitDummy, PostitPrime} from "./PostitView.ts"
+import {PostitView, PostitDummy} from "./PostitView.ts"
 import {LinkView} from "./LinkView.ts"
 import { DLinks } from "./domain/link/DLinks.ts";
 import { DLink } from "./domain/link/DLink.ts";
@@ -67,7 +67,8 @@ export class PostitService {
   
 }
 
-const usecaseTypes = [
+
+const commandTypes = [
   "postit.add",        // 追加
   "postit.delete",     // 削除。リンクも消える
   "postit.updateText", // テキスト更新 

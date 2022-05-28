@@ -1,5 +1,5 @@
 import { DLink } from "./domain/link/DLink.ts";
-import {PostitView, PostitPrime} from "./PostitView.ts"
+import {PostitView} from "./PostitView.ts"
 import {calcCollisionPoint} from "./utils/calcCollisionPoint.js"
 
 export class LinkView extends DLink {

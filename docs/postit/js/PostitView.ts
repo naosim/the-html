@@ -3,13 +3,7 @@ import { DPostit } from "./domain/postit/DPostit.ts";
 type Pos = {x: number, y: number};
 type Size = {width: number, height: number}
 
-export interface PostitPrime {
-  id: string;
-  text: string;
-  pos: Pos;
-  setPos(x: number, y: number): void;
-}
-export class PostitView extends DPostit implements PostitPrime  {
+export class PostitView extends DPostit {
   center: Pos = {x: 0, y: 0};
   size: Size = {width: 0, height: 0};
   isDiv = false; // vueに更新を気づいてもらうためのフラグ

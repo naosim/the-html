@@ -1,4 +1,4 @@
-import {PostitView, PostitPrime} from "./PostitView.ts"
+import {PostitView} from "./PostitView.ts"
 
 /**
  * 選択中の付箋
