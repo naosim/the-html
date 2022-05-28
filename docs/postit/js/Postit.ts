@@ -1,21 +1,23 @@
-export class Postit {
-  #div;
-  pos = {x: 0, y: 0};
-  center = {x: 0, y: 0};
-  size = {width: 0, height: 0};
-  isDiv = false; // vueに更新を気づいてもらうためのフラグ
-  constructor(id, text, pos) {
-    this.id = id;
-    this.text = text;
-    this.pos.x = pos.x;
-    this.pos.y = pos.y;
-  }
+import { DPostit } from "./domain/postit/DPostit.ts";
 
-  updateSize(div) {
+type Pos = {x: number, y: number};
+type Size = {width: number, height: number}
+
+export interface PostitPrime {
+  id: string;
+  text: string;
+  pos: Pos;
+  setPos(x: number, y: number): void;
+}
+export class Postit extends DPostit implements PostitPrime  {
+  center: Pos = {x: 0, y: 0};
+  size: Size = {width: 0, height: 0};
+  isDiv = false; // vueに更新を気づいてもらうためのフラグ
+  updateSize(div: any) {
     if(!div) {
       // throw new Error("サイズ未確定 " + this.id);
       this.size.width = 0;
-    this.size.height = 0;
+      this.size.height = 0;
     }
     
     this.size.width = div.clientWidth;
@@ -28,20 +30,11 @@ export class Postit {
       y: this.pos.y + this.size.height
     }
   }
-  setPos(x, y) {
-    this.pos.x = x;
-    this.pos.y = y;
+  setPos(x: number, y: number) {
+    super.move({x, y});
     this.updateCenter();    
   }
-  // setDiv(div) {
-  //   if(!div) {
-  //     throw new Error("div is undefined");
-  //   }
-  //   // console.log(div);
-  //   this.#div = div;
-  //   this.updateCenter();
-  //   this.isDiv = true;
-  // }
+  
   updateCenter() {
     this.center.x = this.pos.x + this.size.width / 2;
     this.center.y = this.pos.y + this.size.height / 2;
@@ -51,19 +44,13 @@ export class PostitDummy extends Postit {
   constructor() {
     super("dummy", "dummy", {x: 12, y: 12})
   }
-  get size() {
-    return {
-      width: 0,
-      height: 0
-    }
-  }
 
   /**
    * 
    * @param {Postit} postit 
    * @returns 
    */
-  static isDummy(postit) {
+  static isDummy(postit: Postit) {
     return postit.id == "dummy"
   }
 

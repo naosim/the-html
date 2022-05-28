@@ -1,18 +1,19 @@
+type Entity = {id:string}
 export class Selected {
-  /** @type {{id:string}[]} */
+  /** @type {Entity[]} */
   values;
-  #map;
-  constructor(entity) {
+  #map: {[key: string]: Entity};
+  constructor(entity: Entity) {
     this.values = [entity] // vueの$dataから参照されるため、初期値として何か1つ入れておく必要がある
     this.#map = {}
   }
 
   /**
    * 選択する
-   * @param {{id:string}[]} entity 
+   * @param {Entity[]} entity 
    * @returns 
    */
-  select(entity) {
+  select(entity: Entity) {
     if(this.#map[entity.id]) {
       return;
     }
@@ -30,19 +31,17 @@ export class Selected {
 
   /**
    * 1つだけ選択する
-   * @param {{id:string}[]} entity 
+   * @param {Entity} entity 
    */
-  selectOne(entity) {
+  selectOne(entity: Entity) {
     this.clear();
     this.select(entity);
   }
 
   /**
    * 選択中か？
-   * @param {{id:string}[]} entity 
-   * @returns 
    */
-  isSelected(entity) {
+  isSelected(entity: Entity) {
     return !!this.#map[entity.id]
   }
 
@@ -54,7 +53,7 @@ export class Selected {
     return this.values.length >= 2;
   }
 
-  forEach(cb) {
+  forEach<T extends Entity>(cb: (value: Entity, index: number, array: Entity[]) => void) {
     this.values.forEach(cb);
   }
-}
+} 

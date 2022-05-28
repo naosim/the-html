@@ -1,12 +1,14 @@
+import { Postit } from "./Postit.ts";
+
 export class CollisionChecker {
   /** @type Postit[] */
   postits;
   
-  constructor(postits) {
+  constructor(postits: Postit[]) {
     this.postits = postits;
   }
 
-  findCollidedPostit(pos) {
+  findCollidedPostit(pos: {x: number, y: number}) {
     return this.postits.filter(v => {
       const rightBottom = v.rightBottom;
       if(rightBottom.x < pos.x || rightBottom.y < pos.y) {

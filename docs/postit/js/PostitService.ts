@@ -1,22 +1,17 @@
-import {Postit, PostitDummy} from "./Postit.js"
-import {Link} from "./Link.js"
+import {Postit, PostitDummy, PostitPrime} from "./Postit.ts"
+import {Link, Links} from "./Link.ts"
 
 export class PostitService {
-  /** @type Postit[] */
-  postits;
-  links;
-  constructor(postits, links) {
-    this.postits = postits;
-    this.links = links;
+  constructor(public postits: Postit[], public links: Links) {
   }
 
-  createNewPostit(pos) {
+  createNewPostit(pos: {x: number, y: number}) {
     const newPostit = new Postit(`${Date.now()}`, "", pos);
     this.postits.push(newPostit);
     return newPostit;
   }
 
-  createNoLinkPostit(currentPostit) {
+  createNoLinkPostit(currentPostit: Postit) {
     const pos = {
       x: currentPostit.pos.x,
       y: currentPostit.pos.y + currentPostit.size.height + 16,
@@ -25,7 +20,7 @@ export class PostitService {
     return postit;
   }
 
-  createSidePostit(currentPostit) {
+  createSidePostit(currentPostit: Postit) {
     const pos = {
       x: currentPostit.pos.x,
       y: currentPostit.pos.y + currentPostit.size.height + 16,
@@ -38,7 +33,7 @@ export class PostitService {
     return postit;
   }
 
-  createSubPostit(parentPostit) {
+  createSubPostit(parentPostit: Postit) {
     const pos = {
       x: parentPostit.pos.x + parentPostit.size.width + 16,
       y: parentPostit.pos.y + 16,
@@ -50,7 +45,7 @@ export class PostitService {
     return startPostit;
   }
 
-  deletePostit(targetPostit) {
+  deletePostit(targetPostit: PostitPrime) {
     // 付箋の削除
     this.postits
         .map((v, i) => v.id == targetPostit.id ? i : -1)
@@ -62,7 +57,7 @@ export class PostitService {
       this.links.exclude(targetPostit);
   }
 
-  setPos(postit, x, y) {
+  setPos(postit: PostitPrime, x: number, y: number) {
     postit.setPos(x, y);
   }
 
@@ -74,8 +69,23 @@ export class PostitService {
     this.links.clear();
   }
 
-  addLink(startPostit, endPostit) {
+  addLink(startPostit: Postit, endPostit: Postit) {
     this.links.push(new Link(startPostit, endPostit));
   }
   
 }
+
+const usecaseTypes = [
+  "postit.add",        // 追加
+  "postit.delete",     // 削除。リンクも消える
+  "postit.updateText", // テキスト更新 
+  "postit.move",       // 移動
+
+  "postits.delete", // リンクも消える
+  "postits.move",
+
+  "link.add",
+  "link.delete",
+
+  "links.delete"
+]

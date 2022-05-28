@@ -1,13 +1,12 @@
-import {Postit, PostitDummy} from "./Postit.js"
+import {Postit, PostitPrime} from "./Postit.ts"
 
 /**
  * 選択中の付箋
  */
 export class SelectedPostits {
-  /** @type Postit[] */
-  values;
-  #map;
-  constructor(dummyPostit) {
+  values: Postit[];
+  #map: {[key: string]: Postit};
+  constructor(dummyPostit: Postit) {
     this.values = [dummyPostit] // vueの$dataから参照されるため、初期値として何か1つ入れておく必要がある
     this.#map = {}
   }
@@ -17,7 +16,7 @@ export class SelectedPostits {
    * @param {Postit} postit 
    * @returns 
    */
-  select(postit) {
+  select(postit: Postit) {
     if(this.#map[postit.id]) {
       return;
     }
@@ -37,7 +36,7 @@ export class SelectedPostits {
    * 1つだけ選択する
    * @param {Postit} postit 
    */
-  selectOne(postit) {
+  selectOne(postit: Postit) {
     this.clear();
     this.select(postit);
   }
@@ -47,7 +46,7 @@ export class SelectedPostits {
    * @param {Postit} postit 
    * @returns 
    */
-  isSelected(postit) {
+  isSelected(postit: Postit) {
     return !!this.#map[postit.id]
   }
 
@@ -64,7 +63,7 @@ export class SelectedPostits {
    * @param {number} diffX 
    * @param {number} diffY 
    */
-  move(diffX, diffY) {
+  move(diffX: number, diffY: number) {
     this.values.forEach(v => v.setPos(v.pos.x + diffX, v.pos.y + diffY))
   }
 
@@ -72,7 +71,7 @@ export class SelectedPostits {
    * 選択中の付箋をキー操作で動かす
    * @param {*} event 
    */
-  moveSelectedPostitIfKeyPressed(event) {
+  moveSelectedPostitIfKeyPressed(event: any) {
     /** @type SelectedPostits */
     const selectedPostits = this;
     if(event.code == "ArrowUp" && selectedPostits.isMultiple()) {

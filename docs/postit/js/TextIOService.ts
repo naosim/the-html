@@ -1,13 +1,8 @@
-import {Postit} from "./Postit.js"
-import {Link, Links} from "./Link.js"
+import {Postit} from "./Postit.ts"
+import {Link, Links} from "./Link.ts"
 
 export class TextIOService {
-  /** @type Postit[] */
-  postits;
-  links;
-  constructor(postits, links) {
-    this.postits = postits;
-    this.links = links;
+  constructor(private postits: Postit[], private links: Links) {
   }
 
   /**
@@ -26,16 +21,17 @@ export class TextIOService {
     return JSON.stringify(output, null, '  ');
   }
 
-  inputText(text) {
+  inputText(text: string) {
     const rawData = JSON.parse(text);
     const data = TextIOService.createInstance(rawData);
-
-    data.postits.forEach(v => this.postits.push(v))
-    data.links.forEach(v => this.links.push(v))
+    const postits: Postit[] = data.postits;
+    const links: Links = data.links; 
+    postits.forEach(v => this.postits.push(v));
+    links.values.forEach(v => this.links.push(v))
   }
 
 
-  static createInstance(rawData) {
+  static createInstance(rawData: {postits: any[], links: any[]}) {
     const postits = rawData.postits.map(v => new Postit(v.id, v.text, v.pos));
     const postitMap = toMap(postits, v => v.id);
     const links = new Links(rawData.links.map(v => new Link(postitMap[v.startId], postitMap[v.endId])));
@@ -44,7 +40,7 @@ export class TextIOService {
   }
 }
 
-function toMap(list, idFunc) {
+function toMap(list: any[], idFunc: (v:any) => string) {
   return list.reduce((memo, v) => {
     memo[idFunc(v)] = v;
     return memo;

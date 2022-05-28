@@ -1,5 +1,6 @@
-import {SelectedPostits} from "./SelectedPostits.js"
-import {MouseMovement} from "./MouseMovement.js"
+import {SelectedPostits} from "./SelectedPostits.ts"
+import {MouseMovement} from "./MouseMovement.ts"
+import { Postit } from "./Postit.ts";
 
 export class DragPostitService {
   data;
@@ -8,13 +9,13 @@ export class DragPostitService {
 
   /** @type SelectedPostits */
   selectedPostits;
-  constructor(data) {
+  constructor(data: any) {
     this.data = data;
     this.mouseMovement = data.mouseMovement;
     this.selectedPostits = data.selectedPostits;
   }
 
-  onStartDrag(clientX, clientY, postit, event) {
+  onStartDrag(clientX: number, clientY: number, postit: Postit, event: any) {
     if(event.shiftKey) {
       this.selectedPostits.select(postit);  
     } else {
@@ -34,7 +35,7 @@ export class DragPostitService {
     this.data.editingLink.pos.updateWithPostit(postit);
   }
 
-  onDragging(clientX, clientY, postit) {
+  onDragging(clientX: number, clientY: number, postit: Postit) {
     const movement = this.mouseMovement.updateClientPos(clientX, clientY);
     this.selectedPostits.move(movement.x, movement.y)
     
