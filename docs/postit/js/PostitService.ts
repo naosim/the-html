@@ -1,4 +1,4 @@
-import {PostitView, PostitDummy} from "./PostitView.ts"
+import {PostitView} from "./PostitView.ts"
 import {LinkView} from "./LinkView.ts"
 import { DLinks } from "./domain/link/DLinks.ts";
 import { DLink } from "./domain/link/DLink.ts";
@@ -10,42 +10,41 @@ export class PostitService {
   }
 
   createNewPostit(pos: {x: number, y: number}) {
-    const newPostit = new PostitView(`${Date.now()}`, "", pos);
+    const newPostit = new DPostit(`${Date.now()}`, "", pos);
     this.postits.add(newPostit);
     return newPostit;
   }
 
-  createNoLinkPostit(currentPostit: PostitView) {
+  createNoLinkPostit(currentPostit: DPostit, currentPostitView: PostitView) {
     const pos = {
       x: currentPostit.pos.x,
-      y: currentPostit.pos.y + currentPostit.size.height + 16,
+      y: currentPostit.pos.y + currentPostitView.size.height + 16,
     }
     const postit = this.createNewPostit(pos);
     return postit;
   }
 
-  createSidePostit(currentPostit: PostitView) {
+  createSidePostit(currentPostit: DPostit, currentPostitView: PostitView) {
     const pos = {
       x: currentPostit.pos.x,
-      y: currentPostit.pos.y + currentPostit.size.height + 16,
+      y: currentPostit.pos.y + currentPostitView.size.height + 16,
     }
     const parentPostit = this.links.getOneEndPostit(currentPostit.id);// nullable
     const postit = this.createNewPostit(pos);
     if(parentPostit) {
-      this.links.add(new LinkView(postit, parentPostit as PostitView)) // キャスト
+      this.links.add(new DLink(postit, parentPostit))
     }
     return postit;
   }
 
-  createSubPostit(parentPostit: PostitView) {
+  createSubPostit(parentPostit: DPostit, currentPostitView: PostitView) {
     const pos = {
-      x: parentPostit.pos.x + parentPostit.size.width + 16,
+      x: parentPostit.pos.x + currentPostitView.size.width + 16,
       y: parentPostit.pos.y + 16,
     }
     const endPostit = parentPostit;
     const startPostit = this.createNewPostit(pos);
-    // this.addLink(startPostit, endPostit);
-    this.links.add(new LinkView(startPostit, endPostit));
+    this.links.add(new DLink(startPostit, endPostit));
     return startPostit;
   }
 
@@ -61,8 +60,8 @@ export class PostitService {
     this.postits.clearAll();
   }
 
-  addLink(startPostit: PostitView, endPostit: PostitView) {
-    this.links.add(new LinkView(startPostit, endPostit));
+  addLink(startPostit: DPostit, endPostit: DPostit) {
+    this.links.add(new DLink(startPostit, endPostit));
   }
   
 }

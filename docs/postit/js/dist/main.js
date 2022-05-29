@@ -2,6 +2,24 @@
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
 
+class DLink {
+    id;
+    constructor(startPostit, endPostit){
+        this.startPostit = startPostit;
+        this.endPostit = endPostit;
+        this.id = DLink.uniqId(startPostit, endPostit);
+        this.startPostit = startPostit;
+        this.endPostit = endPostit;
+    }
+    has(postitId) {
+        return this.startPostit.id == postitId || this.endPostit.id == postitId;
+    }
+    static uniqId(startPostit, endPostit) {
+        return `${startPostit.id}|${endPostit.id}`;
+    }
+    startPostit;
+    endPostit;
+}
 class DPostit {
     constructor(id, text, pos){
         this.id = id;
@@ -23,44 +41,77 @@ class DPostit {
     text;
     pos;
 }
-class PostitView extends DPostit {
-    center = {
-        x: 0,
-        y: 0
-    };
-    size = {
-        width: 0,
-        height: 0
-    };
-    isDiv = false;
-    updateSize(div) {
-        if (!div) {
-            this.size.width = 0;
-            this.size.height = 0;
-        }
-        this.size.width = div.clientWidth;
-        this.size.height = div.clientHeight;
-        this.updateCenter();
-    }
-    get rightBottom() {
-        return {
-            x: this.pos.x + this.size.width,
-            y: this.pos.y + this.size.height
+class PostitView {
+    isDiv;
+    constructor(postitId){
+        this.postitId = postitId;
+        this.isDiv = false;
+        this.center = {
+            x: 0,
+            y: 0
+        };
+        this.#size = {
+            width: 0,
+            height: 0
         };
     }
-    setPos(x, y) {
-        super.move({
-            x,
-            y
-        });
-        this.updateCenter();
+    center;
+    #size;
+    get size() {
+        if (!this.isDiv) {
+            console.log("zero!", this.postitId);
+        }
+        return this.#size;
     }
-    updateCenter() {
-        this.center.x = this.pos.x + this.size.width / 2;
-        this.center.y = this.pos.y + this.size.height / 2;
+    updateSize(div, postit) {
+        const currentWidth = this.#size.width;
+        const currentHeight = this.#size.height;
+        if (!div) {
+            this.#size.width = 0;
+            this.#size.height = 0;
+        } else {
+            this.isDiv = true;
+            this.#size.width = div.clientWidth;
+            this.#size.height = div.clientHeight;
+        }
+        this.updateCenter(postit);
+        return currentWidth != this.#size.width || currentHeight != this.#size.height;
+    }
+    getRightBottom(postit) {
+        return {
+            x: postit.pos.x + this.size.width,
+            y: postit.pos.y + this.size.height
+        };
+    }
+    updateCenter(postit) {
+        this.center.x = postit.pos.x + this.size.width / 2;
+        this.center.y = postit.pos.y + this.size.height / 2;
+    }
+    postitId;
+}
+class PostitViewRepository {
+    #map = {};
+    find(postitId) {
+        if (PostitDummy.isDummyById(postitId)) {
+            return new PostitView(postitId);
+        }
+        const result = this.#map[postitId];
+        if (!result) {
+            throw new Error(`not found: ${postitId}`);
+        }
+        return result;
+    }
+    add(postitView) {
+        this.#map[postitView.postitId] = postitView;
+    }
+    delete(postitId) {
+        delete this.#map[postitId];
+    }
+    optimize(postits) {
+        Object.keys(this.#map).filter((id)=>!postits.isExist(id)).forEach((id)=>this.delete(id));
     }
 }
-class PostitDummy extends PostitView {
+class PostitDummy extends DPostit {
     constructor(){
         super("dummy", "dummy", {
             x: 12,
@@ -68,138 +119,54 @@ class PostitDummy extends PostitView {
         });
     }
     static isDummy(postit) {
-        return postit.id == "dummy";
+        return this.isDummyById(postit.id);
+    }
+    static isDummyById(postitId) {
+        return postitId == "dummy";
     }
     static instance() {
         return dummyPostit;
     }
 }
 const dummyPostit = new PostitDummy();
-class DLink {
-    id;
-    constructor(startPostit, endPostit){
-        this.startPostit = startPostit;
-        this.endPostit = endPostit;
-        this.id = DLink.uniqId(startPostit, endPostit);
-        this.startPostit = startPostit;
-        this.endPostit = endPostit;
-    }
-    has(postitId) {
-        return this.startPostit.id == postitId || this.endPostit.id == postitId;
-    }
-    static uniqId(startPostit, endPostit) {
-        return `${startPostit.id}|${endPostit.id}`;
-    }
-    startPostit;
-    endPostit;
-}
-function calcCollisionPoint(point, rect) {
-    const center = {
-        x: rect.pos.x + rect.size.width / 2,
-        y: rect.pos.y + rect.size.height / 2
-    };
-    const getY = (x)=>(center.y - point.y) / (center.x - point.x) * (x - point.x) + point.y;
-    const getX = (y)=>(center.x - point.x) / (center.y - point.y) * (y - point.y) + point.x;
-    const getYWithRange = (x, yRangeStart, yRangeEnd)=>{
-        const y = getY(x);
-        return isInRange(y, yRangeStart, yRangeEnd) ? y : undefined;
-    };
-    const getXWithRange = (y, xRangeStart, xRangeEnd)=>{
-        const x = getX(y);
-        return isInRange(x, xRangeStart, xRangeEnd) ? x : undefined;
-    };
-    const candidatePoints = [
-        {
-            x: getXWithRange(rect.pos.y, rect.pos.x, rect.pos.x + rect.size.width),
-            y: rect.pos.y
-        },
-        {
-            x: getXWithRange(rect.pos.y + rect.size.height, rect.pos.x, rect.pos.x + rect.size.width),
-            y: rect.pos.y + rect.size.height
-        },
-        {
-            x: rect.pos.x + rect.size.width,
-            y: getYWithRange(rect.pos.x + rect.size.width, rect.pos.y, rect.pos.y + rect.size.height)
-        },
-        {
-            x: rect.pos.x,
-            y: getYWithRange(rect.pos.x, rect.pos.y, rect.pos.y + rect.size.height)
-        }
-    ].filter((v)=>v.x !== undefined && v.y !== undefined);
-    if (candidatePoints.length == 1) {
-        return candidatePoints[0];
-    }
-    if (candidatePoints.length >= 3) {
-        throw new Error("想定外");
-    }
-    const lengthes = candidatePoints.map((v)=>length(v, point));
-    return lengthes[0] < lengthes[1] ? candidatePoints[0] : candidatePoints[1];
-}
-function isInRange(v, start, end) {
-    return start <= v && v < end;
-}
-function length(pos1, pos2) {
-    return Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2);
-}
-class LinkView extends DLink {
-    constructor(startPostitView, endPostitView){
-        super(startPostitView, endPostitView);
-        this.startPostitView = startPostitView;
-        this.endPostitView = endPostitView;
-    }
-    getEndPoint() {
-        if (this.startPostitView.size.width == 0 || this.endPostitView.size.height == 0) {
-            return this.endPostitView.center;
-        }
-        return calcCollisionPoint(this.startPostitView.center, this.endPostitView);
-    }
-    getStartPoint() {
-        if (this.startPostitView.size.width == 0 || this.startPostitView.size.height == 0) {
-            return this.startPostitView.center;
-        }
-        return calcCollisionPoint(this.endPostitView.center, this.startPostitView);
-    }
-    startPostitView;
-    endPostitView;
-}
 class PostitService {
     constructor(postits, links){
         this.postits = postits;
         this.links = links;
     }
     createNewPostit(pos) {
-        const newPostit = new PostitView(`${Date.now()}`, "", pos);
+        const newPostit = new DPostit(`${Date.now()}`, "", pos);
         this.postits.add(newPostit);
         return newPostit;
     }
-    createNoLinkPostit(currentPostit) {
+    createNoLinkPostit(currentPostit, currentPostitView) {
         const pos = {
             x: currentPostit.pos.x,
-            y: currentPostit.pos.y + currentPostit.size.height + 16
+            y: currentPostit.pos.y + currentPostitView.size.height + 16
         };
         const postit = this.createNewPostit(pos);
         return postit;
     }
-    createSidePostit(currentPostit) {
+    createSidePostit(currentPostit, currentPostitView) {
         const pos = {
             x: currentPostit.pos.x,
-            y: currentPostit.pos.y + currentPostit.size.height + 16
+            y: currentPostit.pos.y + currentPostitView.size.height + 16
         };
         const parentPostit = this.links.getOneEndPostit(currentPostit.id);
         const postit = this.createNewPostit(pos);
         if (parentPostit) {
-            this.links.add(new LinkView(postit, parentPostit));
+            this.links.add(new DLink(postit, parentPostit));
         }
         return postit;
     }
-    createSubPostit(parentPostit) {
+    createSubPostit(parentPostit, currentPostitView) {
         const pos = {
-            x: parentPostit.pos.x + parentPostit.size.width + 16,
+            x: parentPostit.pos.x + currentPostitView.size.width + 16,
             y: parentPostit.pos.y + 16
         };
         const endPostit = parentPostit;
         const startPostit = this.createNewPostit(pos);
-        this.links.add(new LinkView(startPostit, endPostit));
+        this.links.add(new DLink(startPostit, endPostit));
         return startPostit;
     }
     deletePostit(targetPostit) {
@@ -215,19 +182,20 @@ class PostitService {
         this.postits.clearAll();
     }
     addLink(startPostit, endPostit) {
-        this.links.add(new LinkView(startPostit, endPostit));
+        this.links.add(new DLink(startPostit, endPostit));
     }
     postits;
     links;
 }
 class CollisionChecker {
-    postits;
-    constructor(postits){
+    constructor(postits, postitViewRepository1){
         this.postits = postits;
+        this.postitViewRepository = postitViewRepository1;
     }
     findCollidedPostit(pos) {
         return this.postits.filter((v)=>{
-            const rightBottom = v.rightBottom;
+            const postitView = this.postitViewRepository.find(v.id);
+            const rightBottom = postitView.getRightBottom(v);
             if (rightBottom.x < pos.x || rightBottom.y < pos.y) {
                 return false;
             }
@@ -237,6 +205,8 @@ class CollisionChecker {
             return true;
         });
     }
+    postits;
+    postitViewRepository;
 }
 class DLinks {
     #uniqMap;
@@ -305,6 +275,9 @@ class DPostits {
             this.links.exclude(p.v.id);
         });
     }
+    isExist(postitId) {
+        return !!this.#map[postitId];
+    }
     move(postitId, pos) {
         this.#map[postitId].move(pos);
     }
@@ -342,9 +315,9 @@ class TextIOService {
         return JSON.stringify(output, null, '  ');
     }
     static createInstance(rawData1) {
-        const postitViews = rawData1.postits.map((v)=>new PostitView(v.id, v.text, v.pos));
+        const postitViews = rawData1.postits.map((v)=>new DPostit(v.id, v.text, v.pos));
         const postitMap = toMap(postitViews, (v)=>v.id);
-        const links = new DLinks(rawData1.links.map((v)=>new LinkView(postitMap[v.startId], postitMap[v.endId])));
+        const links = new DLinks(rawData1.links.map((v)=>new DLink(postitMap[v.startId], postitMap[v.endId])));
         const postits = new DPostits(postitViews, links);
         return {
             postits,
@@ -364,7 +337,8 @@ class DragPostitService {
     data;
     mouseMovement;
     selectedPostits;
-    constructor(data1){
+    constructor(data1, postitViewRepository2){
+        this.postitViewRepository = postitViewRepository2;
         this.data = data1;
         this.mouseMovement = data1.mouseMovement;
         this.selectedPostits = data1.selectedPostits;
@@ -376,7 +350,7 @@ class DragPostitService {
             this.selectedPostits.selectOne(postit);
         }
         if (this.data.editingPostit.id != postit.id) {
-            this.data.editingPostit.updateCenter();
+            this.postitViewRepository.find(this.data.editingPostit.id).updateCenter(this.data.editingPostit);
         }
         this.data.editingLink.isEditing = false;
         this.data.editingPostit = postit;
@@ -388,6 +362,7 @@ class DragPostitService {
         this.selectedPostits.move(movement.x, movement.y);
         this.data.editingLink.pos.updateWithPostit(postit);
     }
+    postitViewRepository;
 }
 class SelectedPostits {
     values;
@@ -404,10 +379,8 @@ class SelectedPostits {
         }
         this.values.push(postit);
         this.#map[postit.id] = postit;
-        console.log(this.values.length);
     }
     clear() {
-        console.log("clear select");
         while(this.values.pop()){}
         this.#map = {};
     }
@@ -415,8 +388,8 @@ class SelectedPostits {
         this.clear();
         this.select(postit);
     }
-    isSelected(postit) {
-        return !!this.#map[postit.id];
+    isSelected(postitId) {
+        return !!this.#map[postitId];
     }
     isNoSelected() {
         return this.values.length == 0;
@@ -425,7 +398,10 @@ class SelectedPostits {
         return this.values.length >= 2;
     }
     move(diffX, diffY) {
-        this.values.forEach((v)=>v.setPos(v.pos.x + diffX, v.pos.y + diffY));
+        this.values.forEach((v)=>v.moveWithDiff({
+                diffX,
+                diffY
+            }));
     }
     moveSelectedPostitIfKeyPressed(event) {
         const selectedPostits = this;
@@ -454,6 +430,84 @@ class MouseMovement {
         this.#y = clientY;
         return result;
     }
+}
+function calcCollisionPoint(point, rect) {
+    const center = {
+        x: rect.pos.x + rect.size.width / 2,
+        y: rect.pos.y + rect.size.height / 2
+    };
+    const getY = (x)=>(center.y - point.y) / (center.x - point.x) * (x - point.x) + point.y;
+    const getX = (y)=>(center.x - point.x) / (center.y - point.y) * (y - point.y) + point.x;
+    const getYWithRange = (x, yRangeStart, yRangeEnd)=>{
+        const y = getY(x);
+        return isInRange(y, yRangeStart, yRangeEnd) ? y : undefined;
+    };
+    const getXWithRange = (y, xRangeStart, xRangeEnd)=>{
+        const x = getX(y);
+        return isInRange(x, xRangeStart, xRangeEnd) ? x : undefined;
+    };
+    const candidatePoints = [
+        {
+            x: getXWithRange(rect.pos.y, rect.pos.x, rect.pos.x + rect.size.width),
+            y: rect.pos.y
+        },
+        {
+            x: getXWithRange(rect.pos.y + rect.size.height, rect.pos.x, rect.pos.x + rect.size.width),
+            y: rect.pos.y + rect.size.height
+        },
+        {
+            x: rect.pos.x + rect.size.width,
+            y: getYWithRange(rect.pos.x + rect.size.width, rect.pos.y, rect.pos.y + rect.size.height)
+        },
+        {
+            x: rect.pos.x,
+            y: getYWithRange(rect.pos.x, rect.pos.y, rect.pos.y + rect.size.height)
+        }
+    ].filter((v)=>v.x !== undefined && v.y !== undefined);
+    if (candidatePoints.length == 1) {
+        return candidatePoints[0];
+    }
+    if (candidatePoints.length >= 3) {
+        throw new Error("想定外");
+    }
+    const lengthes = candidatePoints.map((v)=>length(v, point));
+    return lengthes[0] < lengthes[1] ? candidatePoints[0] : candidatePoints[1];
+}
+function isInRange(v, start, end) {
+    return start <= v && v < end;
+}
+function length(pos1, pos2) {
+    return Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2);
+}
+class LinkView {
+    constructor(startPostit, endPostit, startPostitView, endPostitView){
+        this.startPostit = startPostit;
+        this.endPostit = endPostit;
+        this.startPostitView = startPostitView;
+        this.endPostitView = endPostitView;
+    }
+    getEndPoint() {
+        if (this.startPostitView.size.width == 0 || this.endPostitView.size.height == 0) {
+            return this.endPostitView.center;
+        }
+        return calcCollisionPoint(this.startPostitView.center, {
+            pos: this.endPostit.pos,
+            size: this.endPostitView.size
+        });
+    }
+    getStartPoint() {
+        if (this.startPostitView.size.width == 0 || this.startPostitView.size.height == 0) {
+            return this.startPostitView.center;
+        }
+        return calcCollisionPoint(this.endPostitView.center, {
+            pos: this.startPostit.pos,
+            size: this.startPostitView.size
+        });
+    }
+    startPostit;
+    endPostit;
+    startPostitView;
+    endPostitView;
 }
 class EditingLinkPos {
     x = -10;
@@ -537,10 +591,14 @@ const rawData = {
         }
     ]
 };
+var postitViewRepository = new PostitViewRepository();
+var collisionChecker = new CollisionChecker([], postitViewRepository);
+const postitsAndLinks = TextIOService.createInstance(rawData);
+postitsAndLinks.postits.values.map((v)=>new PostitView(v.id)).forEach((v)=>postitViewRepository.add(v));
 const data = {
     message: 'Hello Vue!',
     mouseMovement: new MouseMovement(),
-    ...TextIOService.createInstance(rawData),
+    ...postitsAndLinks,
     selectedPostits: new SelectedPostits(dummyPostit1),
     editingLink: {
         startPostit: dummyPostit1,
@@ -552,74 +610,87 @@ const data = {
     isFocusForText: false,
     textHeight: 20,
     refreshCount: 1,
-    selectedLinks: new Selected(new LinkView(dummyPostit1, dummyPostit1))
+    selectedLinks: new Selected(new DLink(dummyPostit1, dummyPostit1)),
+    shock: Date.now()
 };
-var collisionChecker = new CollisionChecker([]);
 var app = new Vue({
     el: '#app',
     data: data,
     methods: {
+        getPostitAndViews: function() {
+            const result = data.postits.values.map((v)=>({
+                    postit: v,
+                    postitView: postitViewRepository.find(v.id)
+                }));
+            console.log("getPostitAndViews", result.length);
+            return result;
+        },
+        getPostitView: function(postitId) {
+            return postitViewRepository.find(postitId);
+        },
         clickLine: function(event, link) {
             console.log("click");
             if (event.shiftKey) {
-                this.$data.selectedLinks.select(link);
+                data.selectedLinks.select(link);
             } else {
-                this.$data.selectedLinks.selectOne(link);
+                data.selectedLinks.selectOne(link);
             }
-            console.log(this.$data.selectedLinks.values.length);
-            this.$data.isFocusForText = false;
-            this.$data.selectedPostits.clear();
+            console.log(data.selectedLinks.values.length);
+            data.isFocusForText = false;
+            data.selectedPostits.clear();
         },
         getLinePath: function(link) {
-            const s = link.getStartPoint();
-            const e = link.getEndPoint();
+            const linkView = new LinkView(link.startPostit, link.endPostit, postitViewRepository.find(link.startPostit.id), postitViewRepository.find(link.endPostit.id));
+            const s = linkView.getStartPoint();
+            const e = linkView.getEndPoint();
+            console.log("getLinePath", linkView.startPostitView.isDiv);
             return `M${s.x},${s.y} L${e.x},${e.y}`;
         },
         getPostitService: function() {
-            return new PostitService(this.$data.postits, this.$data.links);
+            return new PostitService(data.postits, data.links);
         },
         getTextIOService: function() {
-            return new TextIOService(this.$data.postits, this.$data.links);
+            return new TextIOService(data.postits, data.links);
         },
         getDragPostitService: function() {
-            return new DragPostitService(this.$data);
+            return new DragPostitService(data, postitViewRepository);
         },
         dragMouseDownForLink: function(event1) {
-            this.editingLink.startPostit = this.editingPostit;
-            this.editingLink.endPostit = dummyPostit1;
-            this.editingLink.isEditing = true;
-            this.$data.selectedLinks.clear();
-            this.mouseMovement.updateClientPos(event1.clientX, event1.clientY);
-            const postits = this.$data.postits.values;
-            postits.forEach((v)=>v.updateCenter());
-            collisionChecker = new CollisionChecker(postits);
+            data.editingLink.startPostit = data.editingPostit;
+            data.editingLink.endPostit = dummyPostit1;
+            data.editingLink.isEditing = true;
+            data.selectedLinks.clear();
+            data.mouseMovement.updateClientPos(event1.clientX, event1.clientY);
+            const postits = data.postits.values;
+            postits.forEach((v)=>postitViewRepository.find(v.id).updateCenter(v));
+            collisionChecker = new CollisionChecker(postits, postitViewRepository);
             event1.preventDefault();
             document.onmousemove = (event)=>this.linkDrag(event);
             document.onmouseup = (event)=>this.closeLinkDrag(event);
         },
         linkDrag: function(event) {
             event.preventDefault();
-            const postits = collisionChecker.findCollidedPostit(this.editingLink.pos).filter((v)=>v.id != this.editingLink.startPostit.id);
+            const postits = collisionChecker.findCollidedPostit(data.editingLink.pos).filter((v)=>v.id != data.editingLink.startPostit.id);
             if (postits.length == 1) {
-                this.editingLink.endPostit = postits[0];
+                data.editingLink.endPostit = postits[0];
             } else {
-                this.editingLink.endPostit = dummyPostit1;
+                data.editingLink.endPostit = dummyPostit1;
             }
-            this.editingLink.pos.x = event.clientX;
-            this.editingLink.pos.y = event.clientY;
+            data.editingLink.pos.x = event.clientX;
+            data.editingLink.pos.y = event.clientY;
             console.log(postits.length);
         },
-        closeLinkDrag () {
-            if (!PostitDummy.isDummy(this.editingLink.startPostit) && !PostitDummy.isDummy(this.editingLink.endPostit)) {
-                this.links.add(new LinkView(this.editingLink.startPostit, this.editingLink.endPostit));
-                this.$data.editingLink.pos.updateWithPostit(this.editingLink.startPostit);
+        closeLinkDrag: function(event) {
+            if (!PostitDummy.isDummy(data.editingLink.startPostit) && !PostitDummy.isDummy(data.editingLink.endPostit)) {
+                data.links.add(new DLink(data.editingLink.startPostit, data.editingLink.endPostit));
+                data.editingLink.pos.updateWithPostit(data.editingLink.startPostit);
             }
             document.onmouseup = null;
             document.onmousemove = null;
         },
         dragMouseDown: function(event2, postit) {
             this.getDragPostitService().onStartDrag(event2.clientX, event2.clientY, postit, event2);
-            this.$data.selectedLinks.clear();
+            data.selectedLinks.clear();
             document.querySelector("textarea").focus();
             event2.preventDefault();
             document.onmousemove = (event)=>this.elementDrag(event, postit);
@@ -629,14 +700,14 @@ var app = new Vue({
             this.getDragPostitService().onDragging(event.clientX, event.clientY, postit);
             event.preventDefault();
         },
-        closeDragElement: function() {
+        closeDragElement: function(event) {
             document.onmouseup = null;
             document.onmousemove = null;
         },
         toEditMode: function(postit) {
-            this.$data.editingPostit = postit;
-            this.$data.isFocusForText = true;
-            this.$data.editingLink.pos.updateWithPostit(postit);
+            data.editingPostit = postit;
+            data.isFocusForText = true;
+            data.editingLink.pos.updateWithPostit(postit);
             this.updateEditingPostitSize();
         },
         createNewPostit: function(pos) {
@@ -645,7 +716,8 @@ var app = new Vue({
             return newPostit;
         },
         createNoLinkPostit: function() {
-            const newPostit = this.getPostitService().createNoLinkPostit(this.$data.editingPostit);
+            const newPostit = this.getPostitService().createNoLinkPostit(data.editingPostit, postitViewRepository.find(data.editingPostit.id));
+            postitViewRepository.add(new PostitView(newPostit.id));
             this.toEditMode(newPostit);
         },
         createNewSheet: function() {
@@ -656,29 +728,36 @@ var app = new Vue({
             });
         },
         calcSize: function() {
+            data.selectedPostits.clear();
             setTimeout(()=>{
-                this.$data.postits.values.forEach((v, i)=>v.updateSize(this.$refs.postit[i]));
+                data.postits.values.forEach((v, i)=>{
+                    const postitView = postitViewRepository.find(v.id);
+                    const div = this.$refs.postit[i];
+                    postitView.updateSize(div, v);
+                });
+                console.log("updateSize");
+                data.shock = Date.now();
             }, 1);
         },
         deletePostit: function() {
             console.log("delete");
-            if (PostitDummy.isDummy(this.$data.editingPostit)) {
+            if (PostitDummy.isDummy(data.editingPostit)) {
                 return;
             }
-            this.$data.selectedPostits.values.forEach((v)=>this.getPostitService().deletePostit(v));
-            this.$data.editingPostit = dummyPostit1;
+            data.selectedPostits.values.forEach((v)=>this.getPostitService().deletePostit(v));
+            data.editingPostit = dummyPostit1;
             this.calcSize();
         },
         clear: function() {
             this.getPostitService().clearAll();
-            this.$data.editingPostit = dummyPostit1;
-            this.$data.editingLink.startPostit = dummyPostit1;
-            this.$data.editingLink.endPostit = dummyPostit1;
-            this.$data.editingLink.pos.x = 0;
-            this.$data.editingLink.pos.y = 0;
-            this.$data.editingLink.isEditing = false;
-            this.$data.isFocusForText = false;
-            this.$data.selectedPostits.clear();
+            data.editingPostit = dummyPostit1;
+            data.editingLink.startPostit = dummyPostit1;
+            data.editingLink.endPostit = dummyPostit1;
+            data.editingLink.pos.x = 0;
+            data.editingLink.pos.y = 0;
+            data.editingLink.isEditing = false;
+            data.isFocusForText = false;
+            data.selectedPostits.clear();
         },
         outputText: function() {
             const text = this.getTextIOService().outputText();
@@ -687,18 +766,17 @@ var app = new Vue({
         outputSvg: function() {
             console.log(document.querySelector("#mainSvg").outerHTML);
         },
-        inputText: function(text) {
-            this.clear();
-            this.getTextIOService().inputText(text);
-            this.calcSize();
-        },
         updateEditingPostitSize () {
-            if (PostitDummy.isDummy(this.$data.editingPostit)) {
+            if (PostitDummy.isDummy(data.editingPostit)) {
                 return;
             }
             setTimeout((v)=>{
-                const div = document.getElementById(this.$data.editingPostit.id);
-                this.$data.editingPostit.updateSize(div);
+                const postit = data.editingPostit;
+                const postitView = postitViewRepository.find(postit.id);
+                const isUpdated = postitView.updateSize(document.getElementById(data.editingPostit.id), postit);
+                if (isUpdated) {
+                    data.shock = Date.now();
+                }
             }, 1);
         },
         toDisplayText (text) {
@@ -712,8 +790,10 @@ var app = new Vue({
         }
     },
     mounted: function() {
-        this.$refs;
-        this.$data.postits.values.forEach((v, i)=>v.updateSize(this.$refs.postit[i]));
+        data.postits.values.forEach((v, i)=>{
+            const postitView = postitViewRepository.find(v.id);
+            postitView.updateSize(this.$refs.postit[i], v);
+        });
         setInterval(()=>{
             if (!this.$data.isFocusForText) {
                 return;
@@ -723,7 +803,8 @@ var app = new Vue({
         console.log("mounted");
         document.addEventListener('keydown', (event)=>{
             console.log(event);
-            this.$data.selectedPostits.moveSelectedPostitIfKeyPressed(event);
+            const postitService = this.getPostitService();
+            data.selectedPostits.moveSelectedPostitIfKeyPressed(event);
             if (event.code == "Enter") {
                 this.$data.refreshCount++;
             }
@@ -731,8 +812,8 @@ var app = new Vue({
                 if (!this.$data.isFocusForText && this.$data.selectedPostits.isNoSelected()) {
                     console.log("delete link");
                     console.log(confirm("矢印を削除します。よろしいですか？"));
-                    this.$data.selectedLinks.forEach((v)=>this.$data.links.delete(v.id));
-                    this.$data.selectedLinks.clear();
+                    data.selectedLinks.forEach((v)=>this.$data.links.delete(v.id));
+                    data.selectedLinks.clear();
                 }
             }
             if (event.code == "Esc") {
@@ -743,7 +824,8 @@ var app = new Vue({
                 if (PostitDummy.isDummy(data.editingPostit)) {
                     return;
                 }
-                const newPostit = this.getPostitService().createSidePostit(data.editingPostit);
+                const newPostit = postitService.createSidePostit(data.editingPostit, postitViewRepository.find(data.editingPostit.id));
+                postitViewRepository.add(new PostitView(newPostit.id));
                 this.toEditMode(newPostit);
                 event.preventDefault();
             }
@@ -751,18 +833,28 @@ var app = new Vue({
                 if (PostitDummy.isDummy(data.editingPostit)) {
                     return;
                 }
-                const newPostit = this.getPostitService().createSubPostit(data.editingPostit);
+                const newPostit = postitService.createSubPostit(data.editingPostit, postitViewRepository.find(data.editingPostit.id));
+                postitViewRepository.add(new PostitView(newPostit.id));
                 this.toEditMode(newPostit);
                 event.preventDefault();
             }
         });
+        this.calcSize();
     },
     computed: {
         lineEndPos: function() {
-            if (PostitDummy.isDummy(this.$data.editingLink.endPostit)) {
-                return this.editingLink.pos;
+            if (PostitDummy.isDummy(data.editingLink.endPostit)) {
+                return data.editingLink.pos;
             }
-            return this.$data.editingLink.endPostit.center;
+            return postitViewRepository.find(data.editingLink.endPostit.id).center;
+        },
+        postitAndViews: function() {
+            data.shock;
+            const result = data.postits.values.map((v)=>({
+                    postit: v,
+                    postitView: postitViewRepository.find(v.id)
+                }));
+            return result;
         }
     }
 });

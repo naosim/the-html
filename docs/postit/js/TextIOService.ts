@@ -1,6 +1,6 @@
-import {PostitView} from "./PostitView.ts"
+import { DLink } from "./domain/link/DLink.ts";
 import { DLinks } from "./domain/link/DLinks.ts";
-import { LinkView } from "./LinkView.ts";
+import { DPostit } from "./domain/postit/DPostit.ts";
 import { DPostits } from "./domain/postit/DPostits.ts";
 
 export class TextIOService {
@@ -31,9 +31,9 @@ export class TextIOService {
 
 
   static createInstance(rawData: {postits: any[], links: any[]}): {postits: DPostits, links: DLinks} {
-    const postitViews = rawData.postits.map(v => new PostitView(v.id, v.text, v.pos));
+    const postitViews = rawData.postits.map(v => new DPostit(v.id, v.text, v.pos));
     const postitMap = toMap(postitViews, v => v.id);
-    const links = new DLinks(rawData.links.map(v => new LinkView(postitMap[v.startId], postitMap[v.endId])));
+    const links = new DLinks(rawData.links.map(v => new DLink(postitMap[v.startId], postitMap[v.endId])));
     const postits = new DPostits(postitViews, links);
     return {postits, links};
   }

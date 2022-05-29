@@ -1,56 +1,106 @@
 import { DPostit } from "./domain/postit/DPostit.ts";
+import { DPostits } from "./domain/postit/DPostits.ts";
 
 type Pos = {x: number, y: number};
 type Size = {width: number, height: number}
 
-export class PostitView extends DPostit {
+export class PostitView {
+  isDiv = false;
+  constructor(public readonly postitId: string) {
+  }
   center: Pos = {x: 0, y: 0};
-  size: Size = {width: 0, height: 0};
-  isDiv = false; // vueに更新を気づいてもらうためのフラグ
-  updateSize(div: any) {
-    if(!div) {
-      // throw new Error("サイズ未確定 " + this.id);
-      this.size.width = 0;
-      this.size.height = 0;
+  #size: Size = {width: 0, height: 0};
+  get size(): {width: number, height: number} {
+    if(!this.isDiv) {
+      console.log("zero!", this.postitId);
     }
     
-    this.size.width = div.clientWidth;
-    this.size.height = div.clientHeight;
-    this.updateCenter();
-  }
-  get rightBottom() {
-    return {
-      x: this.pos.x + this.size.width,
-      y: this.pos.y + this.size.height
-    }
-  }
-  setPos(x: number, y: number) {
-    super.move({x, y});
-    this.updateCenter();    
-  }
-  
-  updateCenter() {
-    this.center.x = this.pos.x + this.size.width / 2;
-    this.center.y = this.pos.y + this.size.height / 2;
-  }
-}
-export class PostitDummy extends PostitView {
-  constructor() {
-    super("dummy", "dummy", {x: 12, y: 12})
+    return this.#size;
   }
 
   /**
    * 
-   * @param {Postit} postit 
-   * @returns 
+   * @param div 
+   * @param postit 
+   * @returns 変更があったらtrueを返す
    */
-  static isDummy(postit: DPostit) {
-    return postit.id == "dummy"
+  updateSize(div: any, postit: DPostit): boolean {
+    // console.log("updateSize", this.postitId);
+    const currentWidth = this.#size.width;
+    const currentHeight = this.#size.height;
+    if(!div) {
+      // throw new Error("サイズ未確定 " + this.id);
+      this.#size.width = 0;
+      this.#size.height = 0;
+    } else {
+      this.isDiv = true;
+      this.#size.width = div.clientWidth;
+      this.#size.height = div.clientHeight;
+    }
+    this.updateCenter(postit);
+
+    return currentWidth != this.#size.width || currentHeight != this.#size.height;
+  }
+  getRightBottom(postit: DPostit) {
+    return {
+      x: postit.pos.x + this.size.width,
+      y: postit.pos.y + this.size.height
+    }
+  }
+  
+  updateCenter(postit: DPostit) {
+    this.center.x = postit.pos.x + this.size.width / 2;
+    this.center.y = postit.pos.y + this.size.height / 2;
+  }
+}
+
+export class PostitViewRepository {
+  #map: {[key: string]: PostitView} = {}
+  
+  find(postitId: string): PostitView {
+    if(PostitDummy.isDummyById(postitId)) {
+      return new PostitView(postitId);
+    }
+    const result = this.#map[postitId];
+    if(!result) {
+      throw new Error(`not found: ${postitId}`);
+    }
+    return result;
   }
 
-  static instance(): PostitView {
+  add(postitView: PostitView) {
+    this.#map[postitView.postitId] = postitView;
+  }
+
+  delete(postitId: string) {
+    delete this.#map[postitId];
+  }
+
+  optimize(postits: DPostits) {
+    Object.keys(this.#map).filter(id => !postits.isExist(id)).forEach(id => this.delete(id))
+  }
+
+}
+
+
+
+export class PostitDummy extends DPostit {
+  constructor() {
+    super("dummy", "dummy", {x: 12, y: 12})
+  }
+
+  static isDummy(postit: DPostit) {
+    return this.isDummyById(postit.id);
+  }
+
+  static isDummyById(postitId: string) {
+    return postitId == "dummy"
+  }
+
+  static instance(): DPostit {
     return dummyPostit;
   }
 }
 
 const dummyPostit = new PostitDummy();
+

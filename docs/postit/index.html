@@ -69,7 +69,7 @@
 <div id="app">
   <!-- 編集中の線描画 -->
   <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="100%" height="1000">
-    <line class="editingLinkLine" v-show="editingLink.isEditing" v-bind:x1="editingLink.startPostit.center.x" v-bind:y1="editingLink.startPostit.center.y" v-bind:x2="lineEndPos.x" v-bind:y2="lineEndPos.y" stroke="black" />
+    <line class="editingLinkLine" v-show="editingLink.isEditing" v-bind:x1="getPostitView(editingLink.startPostit.id).center.x" v-bind:y1="getPostitView(editingLink.startPostit.id).center.y" v-bind:x2="lineEndPos.x" v-bind:y2="lineEndPos.y" stroke="black" />
   </svg>
 
   <!-- 最終成果物のsvg -->
@@ -87,31 +87,32 @@
       <polygon points="2,2 2,8 6,5" fill="#e41" />
     </marker>
 
-    <g v-for="postit in postits.values" >
+    <g v-for="postitAndView in postitAndViews" >
       <rect 
-        v-bind:id="'rect' + postit.id"
-        v-bind:x="postit.pos.x"
-        v-bind:y="postit.pos.y"
-        v-bind:width="postit.isDiv ? postit.size.width : postit.size.width"
-        v-bind:height="postit.size.height"
+        v-bind:id="'rect' + postitAndView.postit.id"
+        v-bind:x="postitAndView.postit.pos.x"
+        v-bind:y="postitAndView.postit.pos.y"
+        v-bind:width="postitAndView.postitView.size.width"
+        v-bind:height="postitAndView.postitView.size.height"
         fill="#ffa"
         stroke="#888"
-        v-bind:stroke-width="selectedPostits.values.length > 0 && selectedPostits.isSelected(postit) ? 4 : 1"
+        v-bind:stroke-width="selectedPostits.values.length > 0 && selectedPostits.isSelected(postitAndView.postit) ? 4 : 1"
       />
       <text
         stroke="none" 
-        v-for="(text, index) in postit.text.split('\n')" 
-        v-bind:x="postit.pos.x + 8"
-        v-bind:y="postit.pos.y + index * textHeight + 23"
+        v-for="(text, index) in postitAndView.postit.text.split('\n')" 
+        v-bind:x="postitAndView.postit.pos.x + 8"
+        v-bind:y="postitAndView.postit.pos.y + index * textHeight + 23"
         font-size="16"
         style="font-family: 'M PLUS 1 Code', sans-serif;white-space:pre;"
-        v-show="editingPostit.id != postit.id || !isFocusForText"
+        v-show="editingPostit.id != postitAndView.postit.id || !isFocusForText"
         v-text="text"
       ></text>
     </g>
 
     <path 
       v-for="link in links.values" 
+      v-if="getPostitView(link.startPostit.id).isDiv"
       v-bind:d="getLinePath(link)" 
       v-on:click="clickLine($event, link)"
       fill="none" 
@@ -139,7 +140,7 @@
     v-bind:class="['textarea', isFocusForText ? '': 'invisible']"
     v-model="editingPostit.text" 
     v-on:focus="isFocusForText = true" v-on:blur="isFocusForText = false"
-    v-bind:style="{left: editingPostit.pos.x + 'px', top: editingPostit.pos.y + 'px', width: (editingPostit.text.length > 0 ? editingPostit.size.width : editingPostit.size.width) - 6 + 'px', height: (editingPostit.text.length > 0 ? editingPostit.size.height : editingPostit.size.height) + 'px' }"
+    v-bind:style="{left: editingPostit.pos.x + 'px', top: editingPostit.pos.y + 'px', width: (editingPostit.text.length > 0 ? getPostitView(editingPostit.id).size.width : getPostitView(editingPostit.id).size.width) - 6 + 'px', height: (editingPostit.text.length > 0 ? getPostitView(editingPostit.id).size.height : getPostitView(editingPostit.id).size.height) + 'px' }"
   ></textarea>
 
   <div class="right-toolbar">

@@ -1,31 +1,28 @@
-import {PostitView} from "./PostitView.ts"
+import { DPostit } from "./domain/postit/DPostit.ts";
+
 
 /**
  * 選択中の付箋
  */
 export class SelectedPostits {
-  values: PostitView[];
-  #map: {[key: string]: PostitView};
-  constructor(dummyPostit: PostitView) {
+  values: DPostit[];
+  #map: {[key: string]: DPostit};
+  constructor(dummyPostit: DPostit) {
     this.values = [dummyPostit] // vueの$dataから参照されるため、初期値として何か1つ入れておく必要がある
     this.#map = {}
   }
 
   /**
    * 選択する
-   * @param {Postit} postit 
-   * @returns 
    */
-  select(postit: PostitView) {
+  select(postit: DPostit) {
     if(this.#map[postit.id]) {
       return;
     }
     this.values.push(postit);
     this.#map[postit.id] = postit;
-    console.log(this.values.length);
   }
   clear() {
-    console.log("clear select");
     while(this.values.pop()) {
       // nop;
     }
@@ -36,18 +33,16 @@ export class SelectedPostits {
    * 1つだけ選択する
    * @param {Postit} postit 
    */
-  selectOne(postit: PostitView) {
+  selectOne(postit: DPostit) {
     this.clear();
     this.select(postit);
   }
 
   /**
    * 選択中か？
-   * @param {Postit} postit 
-   * @returns 
    */
-  isSelected(postit: PostitView) {
-    return !!this.#map[postit.id]
+  isSelected(postitId: string) {
+    return !!this.#map[postitId]
   }
 
   isNoSelected() {
@@ -64,7 +59,7 @@ export class SelectedPostits {
    * @param {number} diffY 
    */
   move(diffX: number, diffY: number) {
-    this.values.forEach(v => v.setPos(v.pos.x + diffX, v.pos.y + diffY))
+    this.values.forEach(v => v.moveWithDiff({diffX, diffY}))
   }
 
   /**

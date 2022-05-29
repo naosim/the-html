@@ -40,6 +40,10 @@ export class DPostits {
         })
   }
 
+  isExist(postitId: string): boolean {
+    return !!this.#map[postitId];
+  }
+
   move(postitId: string, pos: {x: number, y: number}){
     this.#map[postitId].move(pos);
   }

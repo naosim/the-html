@@ -1,19 +1,29 @@
-import { PostitView } from "./PostitView.ts";
+import { DPostit } from "./domain/postit/DPostit.ts";
+import { PostitView, PostitViewRepository } from "./PostitView.ts";
+import { EditingLinkPos } from "./EditingLinkPos.ts";
 
 export class DragPostitService {
-  data;
+  data: {
+    editingPostit: DPostit,
+    editingLink: {
+      startPostit: DPostit,
+      endPostit: DPostit,
+      pos: EditingLinkPos,
+      isEditing: boolean
+    }
+  };
   /** @type MouseMovement */
   mouseMovement;
 
   /** @type SelectedPostits */
   selectedPostits;
-  constructor(data: any) {
+  constructor(data: any, private postitViewRepository: PostitViewRepository) {
     this.data = data;
     this.mouseMovement = data.mouseMovement;
     this.selectedPostits = data.selectedPostits;
   }
 
-  onStartDrag(clientX: number, clientY: number, postit: PostitView, event: any) {
+  onStartDrag(clientX: number, clientY: number, postit: DPostit, event: any) {
     if(event.shiftKey) {
       this.selectedPostits.select(postit);  
     } else {
@@ -21,7 +31,7 @@ export class DragPostitService {
     }
 
     if(this.data.editingPostit.id != postit.id) {
-      this.data.editingPostit.updateCenter();
+      this.postitViewRepository.find(this.data.editingPostit.id).updateCenter(this.data.editingPostit);
     }
     this.data.editingLink.isEditing = false;
 
@@ -33,7 +43,7 @@ export class DragPostitService {
     this.data.editingLink.pos.updateWithPostit(postit);
   }
 
-  onDragging(clientX: number, clientY: number, postit: PostitView) {
+  onDragging(clientX: number, clientY: number, postit: DPostit) {
     const movement = this.mouseMovement.updateClientPos(clientX, clientY);
     this.selectedPostits.move(movement.x, movement.y)
     
