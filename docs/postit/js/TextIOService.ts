@@ -22,12 +22,14 @@ export class TextIOService {
     return JSON.stringify(output, null, '  ');
   }
 
-  // inputText(text: string) {
-  //   const rawData = JSON.parse(text);
-  //   const data = TextIOService.createInstance(rawData);
-  //   const links = new DLinks(data.linkViews);
-  //   const postits = new DPostits(data.postitViews, links);
-  // }
+  inputText(text: string) {
+    const rawData = JSON.parse(text);
+    const data = TextIOService.createInstance(rawData);
+
+    this.postits.clearAll();
+    data.postits.values.forEach(v => this.postits.add(v));
+    data.links.values.forEach(v => this.links.add(v));
+  }
 
 
   static createInstance(rawData: {postits: any[], links: any[]}): {postits: DPostits, links: DLinks} {

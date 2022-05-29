@@ -314,10 +314,17 @@ class TextIOService {
         };
         return JSON.stringify(output, null, '  ');
     }
-    static createInstance(rawData1) {
-        const postitViews = rawData1.postits.map((v)=>new DPostit(v.id, v.text, v.pos));
+    inputText(text) {
+        const rawData1 = JSON.parse(text);
+        const data1 = TextIOService.createInstance(rawData1);
+        this.postits.clearAll();
+        data1.postits.values.forEach((v)=>this.postits.add(v));
+        data1.links.values.forEach((v)=>this.links.add(v));
+    }
+    static createInstance(rawData2) {
+        const postitViews = rawData2.postits.map((v)=>new DPostit(v.id, v.text, v.pos));
         const postitMap = toMap(postitViews, (v)=>v.id);
-        const links = new DLinks(rawData1.links.map((v)=>new DLink(postitMap[v.startId], postitMap[v.endId])));
+        const links = new DLinks(rawData2.links.map((v)=>new DLink(postitMap[v.startId], postitMap[v.endId])));
         const postits = new DPostits(postitViews, links);
         return {
             postits,
@@ -337,11 +344,11 @@ class DragPostitService {
     data;
     mouseMovement;
     selectedPostits;
-    constructor(data1, postitViewRepository2){
+    constructor(data2, postitViewRepository2){
         this.postitViewRepository = postitViewRepository2;
-        this.data = data1;
-        this.mouseMovement = data1.mouseMovement;
-        this.selectedPostits = data1.selectedPostits;
+        this.data = data2;
+        this.mouseMovement = data2.mouseMovement;
+        this.selectedPostits = data2.selectedPostits;
     }
     onStartDrag(clientX, clientY, postit, event) {
         if (event.shiftKey) {
@@ -765,6 +772,10 @@ var app = new Vue({
         },
         outputSvg: function() {
             console.log(document.querySelector("#mainSvg").outerHTML);
+        },
+        inputText: function(text) {
+            this.getTextIOService().inputText(text);
+            this.calcSize();
         },
         updateEditingPostitSize () {
             if (PostitDummy.isDummy(data.editingPostit)) {

@@ -224,11 +224,10 @@ var app = new Vue({
     outputSvg: function() {
       console.log(document.querySelector("#mainSvg").outerHTML)
     },
-    // inputText: function(text: string) {
-    //   this.clear();
-    //   this.getTextIOService().inputText(text);
-    //   this.calcSize();
-    // },
+    inputText: function(text: string) {
+      this.getTextIOService().inputText(text);
+      this.calcSize();
+    },
     updateEditingPostitSize() {
       if(PostitDummy.isDummy(data.editingPostit)) {
         return;
