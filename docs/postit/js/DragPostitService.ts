@@ -50,4 +50,7 @@ export class DragPostitService {
     // link
     this.data.editingLink.pos.updateWithPostit(postit);
   }
+  onEndDrag(clientX: number, clientY: number, postit: DPostit) {
+    console.log("onEndDrag", clientX, clientY);
+  }
 }

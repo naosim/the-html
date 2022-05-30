@@ -11,6 +11,7 @@ import {MouseMovement} from "./MouseMovement.ts"
 import {LinkView} from "./LinkView.ts"
 import {EditingLinkPos} from "./EditingLinkPos.ts"
 import {Selected} from "./Selected.ts"
+import { CommandCenter } from "./command/Command.ts";
 
 declare var document: any;
 declare var window: any;
@@ -31,6 +32,7 @@ const rawData = {
 var postitViewRepository = new PostitViewRepository();
 var collisionChecker = new CollisionChecker([], postitViewRepository);
 const postitsAndLinks = TextIOService.createInstance(rawData);
+const commandCenter = new CommandCenter(postitsAndLinks.postits, postitsAndLinks.links);
 postitsAndLinks.postits.values.map(v => new PostitView(v.id)).forEach(v => postitViewRepository.add(v));
 
 const data = {
@@ -90,7 +92,7 @@ var app = new Vue({
       return `M${s.x},${s.y} L${e.x},${e.y}`
     },
     getPostitService: function(): PostitService {
-      return new PostitService(data.postits, data.links);
+      return new PostitService(data.postits, data.links, commandCenter);
     },
     getTextIOService: function(): TextIOService {
       return new TextIOService(data.postits, data.links);

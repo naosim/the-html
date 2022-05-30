@@ -22,14 +22,21 @@ export class DLinks {
 
   /**
    * 指定した付箋に関係するリンクを削除する
+   * @param postitId 
+   * @returns 削除したリンクを返す
    */
-  exclude(postitId: string) {
+  exclude(postitId: string): DLink[] {
+    const deletedLinks: DLink[] = [];
     const indexies = this.values
       .map((v, i) => v.has(postitId) ? i : -1)
         .filter(v => v >= 0)
         .reverse();
-      indexies.forEach(v => this.values.splice(v, 1))
+      indexies.forEach(v => {
+        deletedLinks.push(this.values[v]);
+        this.values.splice(v, 1);
+      })
     this.updateMap();
+    return deletedLinks;
   }
 
   delete(linkId: string) {

@@ -14,6 +14,9 @@ export class DLink {
   }
 
   static uniqId(startPostit: DPostit, endPostit: DPostit) {
-    return `${startPostit.id}|${endPostit.id}`
+    return DLink.uniqIdFromId(startPostit.id, endPostit.id);
+  }
+  static uniqIdFromId(startPostitId: string, endPostitId: string) {
+    return `${startPostitId}|${endPostitId}`
   }
 }

@@ -1,4 +1,5 @@
 import { DLinks } from "../link/DLinks.ts";
+import { DLink } from "../link/DLink.ts";
 import { DPostit } from "./DPostit.ts";
 
 export class DPostits {
@@ -18,7 +19,13 @@ export class DPostits {
     this.#map[postit.id] = postit;
   }
 
-  delete(postitId: string) {
+  /**
+   * 付箋を削除する
+   * @param postitId 
+   * @returns 削除した付箋とリンクを返す
+   */
+  delete(postitId: string): {postit: DPostit, links: DLink[]} {
+    const postit = this.find(postitId);
     // 付箋の削除
     this.values
         .map((v, i) => v.id == postitId ? i : -1)
@@ -27,7 +34,8 @@ export class DPostits {
         .forEach(v => this.values.splice(v, 1))
       
       // linkの削除
-      this.links.exclude(postitId);
+      const links = this.links.exclude(postitId);
+      return {postit, links}
   }
 
   clearAll() {
@@ -55,5 +63,14 @@ export class DPostits {
   updateText(postitId: string, text: string) {
     this.#map[postitId].updateText(text);
   }
+
+  find(postitId: string): DPostit {
+    return this.#map[postitId];
+  }
+
+  // addPostitsAndLinks(postits: DPostit[], links: DLink[]) {
+  //   postits.forEach(v => this.add(v));
+  //   links.forEach(v => this.links.add(v));
+  // }
 }
 

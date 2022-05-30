@@ -15,7 +15,10 @@ class DLink {
         return this.startPostit.id == postitId || this.endPostit.id == postitId;
     }
     static uniqId(startPostit, endPostit) {
-        return `${startPostit.id}|${endPostit.id}`;
+        return DLink.uniqIdFromId(startPostit.id, endPostit.id);
+    }
+    static uniqIdFromId(startPostitId, endPostitId) {
+        return `${startPostitId}|${endPostitId}`;
     }
     startPostit;
     endPostit;
@@ -130,22 +133,35 @@ class PostitDummy extends DPostit {
 }
 const dummyPostit = new PostitDummy();
 class PostitService {
-    constructor(postits, links){
+    constructor(postits, links, commandCenter1){
         this.postits = postits;
         this.links = links;
+        this.commandCenter = commandCenter1;
+    }
+    createPostitId() {
+        return `${Date.now()}`;
     }
     createNewPostit(pos) {
-        const newPostit = new DPostit(`${Date.now()}`, "", pos);
-        this.postits.add(newPostit);
-        return newPostit;
+        const id = this.createPostitId();
+        this.commandCenter.addPostit({
+            id,
+            text: "",
+            pos
+        });
+        return this.postits.find(id);
     }
     createNoLinkPostit(currentPostit, currentPostitView) {
         const pos = {
             x: currentPostit.pos.x,
             y: currentPostit.pos.y + currentPostitView.size.height + 16
         };
-        const postit = this.createNewPostit(pos);
-        return postit;
+        const id = this.createPostitId();
+        this.commandCenter.addPostit({
+            id,
+            text: "",
+            pos
+        });
+        return this.postits.find(id);
     }
     createSidePostit(currentPostit, currentPostitView) {
         const pos = {
@@ -153,11 +169,31 @@ class PostitService {
             y: currentPostit.pos.y + currentPostitView.size.height + 16
         };
         const parentPostit = this.links.getOneEndPostit(currentPostit.id);
-        const postit = this.createNewPostit(pos);
+        const id = this.createPostitId();
         if (parentPostit) {
-            this.links.add(new DLink(postit, parentPostit));
+            this.commandCenter.addPostitsAndLinks({
+                postits: [
+                    {
+                        id,
+                        text: "",
+                        pos
+                    }
+                ],
+                links: [
+                    {
+                        startPostitId: id,
+                        endPostitId: parentPostit.id
+                    }
+                ]
+            });
+        } else {
+            this.commandCenter.addPostit({
+                id,
+                text: "",
+                pos
+            });
         }
-        return postit;
+        return this.postits.find(id);
     }
     createSubPostit(parentPostit, currentPostitView) {
         const pos = {
@@ -165,12 +201,28 @@ class PostitService {
             y: parentPostit.pos.y + 16
         };
         const endPostit = parentPostit;
-        const startPostit = this.createNewPostit(pos);
-        this.links.add(new DLink(startPostit, endPostit));
-        return startPostit;
+        const id = this.createPostitId();
+        this.commandCenter.addPostitsAndLinks({
+            postits: [
+                {
+                    id,
+                    text: "",
+                    pos
+                }
+            ],
+            links: [
+                {
+                    startPostitId: id,
+                    endPostitId: endPostit.id
+                }
+            ]
+        });
+        return this.postits.find(id);
     }
     deletePostit(targetPostit) {
-        this.postits.delete(targetPostit.id);
+        this.commandCenter.deletePostit({
+            postitId: targetPostit.id
+        });
     }
     move(postit, x, y) {
         this.postits.move(postit.id, {
@@ -182,10 +234,14 @@ class PostitService {
         this.postits.clearAll();
     }
     addLink(startPostit, endPostit) {
-        this.links.add(new DLink(startPostit, endPostit));
+        this.commandCenter.addLink({
+            startPostitId: startPostit.id,
+            endPostitId: endPostit.id
+        });
     }
     postits;
     links;
+    commandCenter;
 }
 class CollisionChecker {
     constructor(postits, postitViewRepository1){
@@ -227,9 +283,14 @@ class DLinks {
         this.updateMap();
     }
     exclude(postitId) {
+        const deletedLinks = [];
         const indexies = this.values.map((v, i)=>v.has(postitId) ? i : -1).filter((v)=>v >= 0).reverse();
-        indexies.forEach((v)=>this.values.splice(v, 1));
+        indexies.forEach((v)=>{
+            deletedLinks.push(this.values[v]);
+            this.values.splice(v, 1);
+        });
         this.updateMap();
+        return deletedLinks;
     }
     delete(linkId) {
         var index = -1;
@@ -263,8 +324,13 @@ class DPostits {
         this.#map[postit.id] = postit;
     }
     delete(postitId) {
+        const postit = this.find(postitId);
         this.values.map((v, i)=>v.id == postitId ? i : -1).filter((v)=>v >= 0).reverse().forEach((v)=>this.values.splice(v, 1));
-        this.links.exclude(postitId);
+        const links = this.links.exclude(postitId);
+        return {
+            postit,
+            links
+        };
     }
     clearAll() {
         this.values.map((v, i)=>({
@@ -286,6 +352,9 @@ class DPostits {
     }
     updateText(postitId, text) {
         this.#map[postitId].updateText(text);
+    }
+    find(postitId) {
+        return this.#map[postitId];
     }
     values;
     links;
@@ -368,6 +437,9 @@ class DragPostitService {
         const movement = this.mouseMovement.updateClientPos(clientX, clientY);
         this.selectedPostits.move(movement.x, movement.y);
         this.data.editingLink.pos.updateWithPostit(postit);
+    }
+    onEndDrag(clientX, clientY, postit) {
+        console.log("onEndDrag", clientX, clientY);
     }
     postitViewRepository;
 }
@@ -563,6 +635,165 @@ class Selected {
         this.values.forEach(cb);
     }
 }
+var CommandType;
+(function(CommandType1) {
+    CommandType1["deleteLinkCommand"] = "deleteLinkCommand";
+    CommandType1["addLinkCommand"] = "addLinkCommand";
+    CommandType1["deletePostitCommand"] = "deletePostitCommand";
+    CommandType1["addPostitCommand"] = "addPostitCommand";
+    CommandType1["addPostitsAndLinks"] = "addPostitsAndLinks";
+    CommandType1["deletePostitsAndLinks"] = "deletePostitsAndLinks";
+})(CommandType || (CommandType = {}));
+class CommandCenter {
+    undoCommands;
+    constructor(postits, links){
+        this.postits = postits;
+        this.links = links;
+        this.undoCommands = [];
+    }
+    invokeAndSaveUndoCommand(command) {
+        const undoCommand = this.invoke(command);
+        this.undoCommands.push(undoCommand);
+    }
+    invoke(command) {
+        console.log("command", JSON.parse(JSON.stringify(command)));
+        if (command.type == CommandType.deleteLinkCommand) {
+            const c = command;
+            this.links.delete(DLink.uniqIdFromId(c.startPostitId, c.endPostitId));
+            const undo = {
+                type: CommandType.addLinkCommand,
+                timestamp: c.timestamp,
+                startPostitId: c.startPostitId,
+                endPostitId: c.endPostitId
+            };
+            return undo;
+        }
+        if (command.type == CommandType.addLinkCommand) {
+            const c = command;
+            this.links.add(new DLink(this.postits.find(c.startPostitId), this.postits.find(c.endPostitId)));
+            const undo = {
+                type: CommandType.deleteLinkCommand,
+                timestamp: c.timestamp,
+                startPostitId: c.startPostitId,
+                endPostitId: c.endPostitId
+            };
+            return undo;
+        }
+        if (command.type == CommandType.deletePostitCommand) {
+            const c = command;
+            const postitAndLinks = this.postits.delete(c.postitId);
+            const undo = {
+                type: CommandType.addPostitsAndLinks,
+                timestamp: c.timestamp,
+                postits: [
+                    postitAndLinks.postit
+                ],
+                links: postitAndLinks.links.map((v)=>({
+                        startPostitId: v.startPostit.id,
+                        endPostitId: v.endPostit.id
+                    }))
+            };
+            return undo;
+        }
+        if (command.type == CommandType.addPostitCommand) {
+            const c = command;
+            this.postits.add(new DPostit(c.id, c.text, c.pos));
+            const undo = {
+                type: CommandType.deletePostitCommand,
+                timestamp: c.timestamp,
+                postitId: c.id
+            };
+            return undo;
+        }
+        if (command.type == CommandType.deletePostitsAndLinks) {
+            const c = command;
+            c.links.map((v)=>DLink.uniqIdFromId(v.startPostitId, v.endPostitId)).forEach((v)=>this.links.delete(v));
+            const result = c.postitIds.reduce((memo, v)=>{
+                const r = this.postits.delete(v);
+                memo.postits = [
+                    ...memo.postits,
+                    r.postit
+                ];
+                memo.links = [
+                    ...memo.links,
+                    ...r.links
+                ];
+                return memo;
+            }, {
+                postits: [],
+                links: []
+            });
+            const undo = {
+                type: CommandType.addPostitsAndLinks,
+                timestamp: c.timestamp,
+                postits: result.postits,
+                links: [
+                    ...c.links,
+                    ...result.links.map((v)=>({
+                            startPostitId: v.startPostit.id,
+                            endPostitId: v.endPostit.id
+                        }))
+                ]
+            };
+            return undo;
+        }
+        if (command.type == CommandType.addPostitsAndLinks) {
+            const c = command;
+            c.postits.map((v)=>new DPostit(v.id, v.text, v.pos)).forEach((v)=>this.postits.add(v));
+            c.links.map((v)=>new DLink(this.postits.find(v.startPostitId), this.postits.find(v.endPostitId))).forEach((v)=>this.links.add(v));
+            const undo = {
+                type: CommandType.deletePostitsAndLinks,
+                timestamp: c.timestamp,
+                postitIds: c.postits.map((v)=>v.id),
+                links: c.links
+            };
+            return undo;
+        }
+        throw new Error("command not found: " + command.type);
+    }
+    deleteLink(args) {
+        const c = {
+            type: CommandType.deleteLinkCommand,
+            timestamp: Date.now(),
+            ...args
+        };
+        this.invokeAndSaveUndoCommand(c);
+    }
+    addLink(args) {
+        const c = {
+            type: CommandType.addLinkCommand,
+            timestamp: Date.now(),
+            ...args
+        };
+        this.invokeAndSaveUndoCommand(c);
+    }
+    deletePostit(args) {
+        const c = {
+            type: CommandType.deletePostitCommand,
+            timestamp: Date.now(),
+            ...args
+        };
+        this.invokeAndSaveUndoCommand(c);
+    }
+    addPostit(args) {
+        const c = {
+            type: CommandType.addPostitCommand,
+            timestamp: Date.now(),
+            ...args
+        };
+        this.invokeAndSaveUndoCommand(c);
+    }
+    addPostitsAndLinks(args) {
+        const c = {
+            type: CommandType.addPostitsAndLinks,
+            timestamp: Date.now(),
+            ...args
+        };
+        this.invokeAndSaveUndoCommand(c);
+    }
+    postits;
+    links;
+}
 const dummyPostit1 = PostitDummy.instance();
 const rawData = {
     postits: [
@@ -601,6 +832,7 @@ const rawData = {
 var postitViewRepository = new PostitViewRepository();
 var collisionChecker = new CollisionChecker([], postitViewRepository);
 const postitsAndLinks = TextIOService.createInstance(rawData);
+const commandCenter = new CommandCenter(postitsAndLinks.postits, postitsAndLinks.links);
 postitsAndLinks.postits.values.map((v)=>new PostitView(v.id)).forEach((v)=>postitViewRepository.add(v));
 const data = {
     message: 'Hello Vue!',
@@ -654,7 +886,7 @@ var app = new Vue({
             return `M${s.x},${s.y} L${e.x},${e.y}`;
         },
         getPostitService: function() {
-            return new PostitService(data.postits, data.links);
+            return new PostitService(data.postits, data.links, commandCenter);
         },
         getTextIOService: function() {
             return new TextIOService(data.postits, data.links);
