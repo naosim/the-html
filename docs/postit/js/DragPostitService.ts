@@ -33,7 +33,7 @@ export class DragPostitService {
     }
 
     if(this.data.editingPostit.id != postit.id) {
-      this.postitViewRepository.find(this.data.editingPostit.id).updateCenter(this.data.editingPostit);
+      // this.postitViewRepository.find(this.data.editingPostit.id).updateCenter(this.data.editingPostit);
     }
     this.data.editingLink.isEditing = false;
 

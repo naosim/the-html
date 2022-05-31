@@ -49,22 +49,23 @@ class PostitView {
     constructor(postitId){
         this.postitId = postitId;
         this.isDiv = false;
-        this.center = {
-            x: 0,
-            y: 0
-        };
         this.#size = {
             width: 0,
             height: 0
         };
     }
-    center;
     #size;
     get size() {
         if (!this.isDiv) {
             console.log("zero!", this.postitId);
         }
         return this.#size;
+    }
+    getCenter(postit) {
+        return {
+            x: postit.pos.x + this.size.width / 2,
+            y: postit.pos.y + this.size.height / 2
+        };
     }
     updateSize(div, postit) {
         const currentWidth = this.#size.width;
@@ -77,7 +78,6 @@ class PostitView {
             this.#size.width = div.clientWidth;
             this.#size.height = div.clientHeight;
         }
-        this.updateCenter(postit);
         return currentWidth != this.#size.width || currentHeight != this.#size.height;
     }
     getRightBottom(postit) {
@@ -85,10 +85,6 @@ class PostitView {
             x: postit.pos.x + this.size.width,
             y: postit.pos.y + this.size.height
         };
-    }
-    updateCenter(postit) {
-        this.center.x = postit.pos.x + this.size.width / 2;
-        this.center.y = postit.pos.y + this.size.height / 2;
     }
     postitId;
 }
@@ -431,9 +427,7 @@ class DragPostitService {
         } else {
             this.selectedPostits.selectOne(postit);
         }
-        if (this.data.editingPostit.id != postit.id) {
-            this.postitViewRepository.find(this.data.editingPostit.id).updateCenter(this.data.editingPostit);
-        }
+        if (this.data.editingPostit.id != postit.id) {}
         this.data.editingLink.isEditing = false;
         this.data.editingPostit = postit;
         this.mouseMovement.updateClientPos(clientX, clientY);
@@ -593,24 +587,18 @@ class LinkView {
     }
     getEndPoint() {
         if (this.startPostitView.size.width == 0 || this.endPostitView.size.height == 0) {
-            return this.endPostitView.center;
+            return this.endPostit.pos;
         }
-        return calcCollisionPoint({
-            x: this.startPostit.pos.x + this.startPostitView.size.width / 2,
-            y: this.startPostit.pos.y + this.startPostitView.size.height / 2
-        }, {
+        return calcCollisionPoint(this.startPostitView.getCenter(this.startPostit), {
             pos: this.endPostit.pos,
             size: this.endPostitView.size
         });
     }
     getStartPoint() {
         if (this.startPostitView.size.width == 0 || this.startPostitView.size.height == 0) {
-            return this.startPostitView.center;
+            return this.startPostit.pos;
         }
-        return calcCollisionPoint({
-            x: this.endPostit.pos.x + this.endPostitView.size.width / 2,
-            y: this.endPostit.pos.y + this.endPostitView.size.height / 2
-        }, {
+        return calcCollisionPoint(this.endPostitView.getCenter(this.endPostit), {
             pos: this.startPostit.pos,
             size: this.startPostitView.size
         });
@@ -974,7 +962,6 @@ var app = new Vue({
             const linkView = new LinkView(link.startPostit, link.endPostit, postitViewRepository.find(link.startPostit.id), postitViewRepository.find(link.endPostit.id));
             const s = linkView.getStartPoint();
             const e = linkView.getEndPoint();
-            console.log("getLinePath", linkView.startPostitView.isDiv);
             return `M${s.x},${s.y} L${e.x},${e.y}`;
         },
         getPostitService: function() {
@@ -993,7 +980,6 @@ var app = new Vue({
             data.selectedLinks.clear();
             data.mouseMovement.updateClientPos(event1.clientX, event1.clientY);
             const postits = data.postits.values;
-            postits.forEach((v)=>postitViewRepository.find(v.id).updateCenter(v));
             collisionChecker = new CollisionChecker(postits, postitViewRepository);
             event1.preventDefault();
             document.onmousemove = (event)=>this.linkDrag(event);
@@ -1188,7 +1174,7 @@ var app = new Vue({
             if (PostitDummy.isDummy(data.editingLink.endPostit)) {
                 return data.editingLink.pos;
             }
-            return postitViewRepository.find(data.editingLink.endPostit.id).center;
+            return postitViewRepository.find(data.editingLink.endPostit.id).getCenter(data.editingLink.endPostit);
         },
         postitAndViews: function() {
             data.shock;

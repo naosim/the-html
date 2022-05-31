@@ -91,7 +91,6 @@ var app = new Vue({
       );
       const s = linkView.getStartPoint();
       const e = linkView.getEndPoint();
-      console.log("getLinePath", linkView.startPostitView.isDiv);
       return `M${s.x},${s.y} L${e.x},${e.y}`
     },
     getPostitService: function(): PostitService {
@@ -115,7 +114,7 @@ var app = new Vue({
 
       /** @type Postit[] */
       const postits = data.postits.values;
-      postits.forEach(v => postitViewRepository.find(v.id).updateCenter(v))
+      // postits.forEach(v => postitViewRepository.find(v.id).updateCenter(v))
       collisionChecker = new CollisionChecker(postits, postitViewRepository);
 
       event.preventDefault()
@@ -267,7 +266,7 @@ var app = new Vue({
   mounted: function() {
     data.selectedPostits.clear();
     data.selectedLinks.clear();
-    
+
     data.postits.values.forEach((v, i) => {
       const postitView = postitViewRepository.find(v.id);
       postitView.updateSize(this.$refs.postit[i], v)
@@ -337,7 +336,7 @@ var app = new Vue({
       if(PostitDummy.isDummy(data.editingLink.endPostit)) {
         return data.editingLink.pos;
       }
-      return postitViewRepository.find(data.editingLink.endPostit.id).center;
+      return postitViewRepository.find(data.editingLink.endPostit.id).getCenter(data.editingLink.endPostit);
     },
     postitAndViews: function() {
       data.shock;// 更新を監視している

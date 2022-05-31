@@ -8,7 +8,6 @@ export class PostitView {
   isDiv = false;
   constructor(public readonly postitId: string) {
   }
-  center: Pos = {x: 0, y: 0};
   #size: Size = {width: 0, height: 0};
   get size(): {width: number, height: number} {
     if(!this.isDiv) {
@@ -16,6 +15,13 @@ export class PostitView {
     }
     
     return this.#size;
+  }
+
+  getCenter(postit: DPostit) {
+    return {
+      x: postit.pos.x + this.size.width / 2,
+      y: postit.pos.y + this.size.height / 2
+    };
   }
 
   /**
@@ -37,7 +43,6 @@ export class PostitView {
       this.#size.width = div.clientWidth;
       this.#size.height = div.clientHeight;
     }
-    this.updateCenter(postit);
 
     return currentWidth != this.#size.width || currentHeight != this.#size.height;
   }
@@ -46,11 +51,6 @@ export class PostitView {
       x: postit.pos.x + this.size.width,
       y: postit.pos.y + this.size.height
     }
-  }
-  
-  updateCenter(postit: DPostit) {
-    this.center.x = postit.pos.x + this.size.width / 2;
-    this.center.y = postit.pos.y + this.size.height / 2;
   }
 }
 
