@@ -13,7 +13,9 @@ enum CommandType {
   addPostitCommand = "addPostitCommand",
 
   addPostitsAndLinks = "addPostitsAndLinks",
-  deletePostitsAndLinks = "deletePostitsAndLinks"
+  deletePostitsAndLinks = "deletePostitsAndLinks",
+
+  movePostits = "movePostits",
 }
 type Command = {type: CommandType, timestamp: number}
 
@@ -25,20 +27,50 @@ type AddPostitArgs = {id: string, text: string, pos: {x:number, y:number}};
 type DeletePostitsAndLinksArgs = {postitIds: string[], links:{startPostitId: string, endPostitId: string}[]};
 type AddPostitsAndLinksArgs = {postits:{id: string, text: string, pos: {x:number, y:number}}[], links:{startPostitId: string, endPostitId: string}[]};
 
+type MovePostitsArgs = {ids: string[], diff: {diffX:number, diffY:number}};
+
 type DeleteLinkCommand = Command & {type:CommandType.deleteLinkCommand} & DeleteLinkArgs;
 type AddLinkCommand = Command & {type:CommandType.addLinkCommand} & AddLinkArgs;
 type DeletePostitCommand = Command & {type:CommandType.deletePostitCommand} & DeletePostitArgs;
 type AddPostitCommand = Command & {type:CommandType.addPostitCommand} & AddPostitArgs;
 type DeletePostitsAndLinksCommand = Command & {type:CommandType.deletePostitsAndLinks} & DeletePostitsAndLinksArgs;
 type AddPostitsAndLinksCommand = Command & {type:CommandType.addPostitsAndLinks} & AddPostitsAndLinksArgs;
+type MovePostitsCommand = Command & {type:CommandType.movePostits} & MovePostitsArgs;
+
 
 export class CommandCenter {
   undoCommands: Command[] = [];
+  currentIndex: number = -1;
   constructor(public postits: DPostits, public links: DLinks) {}
 
   invokeAndSaveUndoCommand(command: Command) {
     const undoCommand = this.invoke(command);
-    this.undoCommands.push(undoCommand);
+    this.addUndoCommand(undoCommand);
+  }
+
+  addUndoCommand(command: Command) {
+    this.undoCommands.slice(0, this.currentIndex + 1);
+    this.undoCommands.push(command);
+    this.currentIndex = this.undoCommands.length - 1;
+  }
+
+  undo() {
+    if(this.currentIndex < 0) {
+      throw new Error("undoできない");
+    }
+    const command = this.undoCommands[this.currentIndex];
+    this.invoke(command);
+    this.currentIndex--;
+  }
+
+  redo() {
+    if(this.currentIndex >= this.undoCommands.length - 1) {
+      throw new Error("redoできない")
+    }
+    const command = this.undoCommands[this.currentIndex + 1];
+    this.invoke(command);
+    this.currentIndex++;
+
   }
 
   /**
@@ -122,6 +154,18 @@ export class CommandCenter {
         };
         return undo;
     }
+
+    if(command.type == CommandType.movePostits) {
+      const c = command as MovePostitsCommand;
+      c.ids.forEach(id => this.postits.moveWithDiff(id, c.diff));
+      const undo: MovePostitsCommand = {
+        type: CommandType.movePostits, 
+        timestamp: c.timestamp, 
+        ids: c.ids,
+        diff: {diffX: -c.diff.diffX, diffY: -c.diff.diffY}
+      };
+      return undo;
+    }
     throw new Error("command not found: " + command.type);
   }
 
@@ -149,5 +193,27 @@ export class CommandCenter {
       ...args
     };
     this.invokeAndSaveUndoCommand(c);
+  }
+  movePostits(args: MovePostitsArgs) {
+    const c : MovePostitsCommand = {
+      type: CommandType.movePostits,
+      timestamp: Date.now(),
+      ...args
+    };
+    this.invokeAndSaveUndoCommand(c);
+  }
+
+  /**
+   * undoコマンド用。D&Dで既に移動済みの場合などに使用
+   * @param args 
+   */
+  movePostitsForUndo(args: MovePostitsArgs) {
+    const undo : MovePostitsCommand = {
+      type: CommandType.movePostits,
+      timestamp: Date.now(),
+      ids: args.ids,
+      diff: {diffX: - args.diff.diffX, diffY: - args.diff.diffY}
+    };
+    this.addUndoCommand(undo);
   }
 }

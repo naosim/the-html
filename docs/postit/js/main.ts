@@ -51,8 +51,11 @@ const data = {
   textHeight: 20, // 定数
   refreshCount: 1,
   selectedLinks: new Selected(new DLink(dummyPostit, dummyPostit)),
-  shock: Date.now()
+  shock: Date.now(),
+  commandCenter: commandCenter
 };
+
+var dragPostitService : DragPostitService | null = null;
 
 var app = new Vue({
   el: '#app',
@@ -98,7 +101,7 @@ var app = new Vue({
       return new TextIOService(data.postits, data.links);
     },
     getDragPostitService: function() {
-      return new DragPostitService(data, postitViewRepository);
+      return new DragPostitService(data, postitViewRepository, commandCenter);
     },
     dragMouseDownForLink: function(event: any) {
       data.editingLink.startPostit = data.editingPostit;
@@ -144,22 +147,25 @@ var app = new Vue({
       document.onmousemove = null
     },
     dragMouseDown: function (event: any, postit: DPostit) {
-      this.getDragPostitService().onStartDrag(event.clientX, event.clientY, postit, event);
+      dragPostitService = new DragPostitService(data, postitViewRepository, commandCenter);
+      dragPostitService.onStartDrag(event.clientX, event.clientY, postit, event);
       data.selectedLinks.clear();
 
       document.querySelector("textarea").focus();
 
       event.preventDefault()
       document.onmousemove = (event: any) => this.elementDrag(event, postit);
-      document.onmouseup = (event: any) => this.closeDragElement(event);
+      document.onmouseup = (event: any) => this.closeDragElement(event, postit);
     },
     elementDrag: function (event: any, postit: DPostit) {
-      this.getDragPostitService().onDragging(event.clientX, event.clientY, postit);
+      dragPostitService!.onDragging(event.clientX, event.clientY, postit);
       event.preventDefault()
     },
-    closeDragElement: function(event: any) {
+    closeDragElement: function(event: any, postit: DPostit) {
+      dragPostitService!.onEndDrag(event.clientX, event.clientY, postit);
       document.onmouseup = null
       document.onmousemove = null
+      dragPostitService = null;
     },
     toEditMode: function(postit: DPostit) {
       data.editingPostit = postit;
@@ -184,7 +190,7 @@ var app = new Vue({
       this.createNewPostit({x: 100, y: 100});
     },
     calcSize: function() {
-      data.selectedPostits.clear();// vueに刺激を与える
+      //data.selectedPostits.clear();// vueに刺激を与える
       setTimeout(() => {
         data.postits.values.forEach((v, i) => {
           const postitView = postitViewRepository.find(v.id);
@@ -254,14 +260,16 @@ var app = new Vue({
       }
       return text;
     },
+    undo() {
+      commandCenter.undo();
+    }
   },
   mounted: function() {
+    data.selectedPostits.clear();
+    data.selectedLinks.clear();
+    
     data.postits.values.forEach((v, i) => {
       const postitView = postitViewRepository.find(v.id);
-      // var b = this.$refs;
-      // var c = this.$refs.postit;
-      // var a = this.$refs.postit[i];
-      // console.log(b, c, a);
       postitView.updateSize(this.$refs.postit[i], v)
     })
     setInterval(()=> {

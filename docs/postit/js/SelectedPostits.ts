@@ -12,6 +12,10 @@ export class SelectedPostits {
     this.#map = {}
   }
 
+  getSelectedIds(): string[] {
+    return this.values.map(v => v.id);
+  }
+
   /**
    * 選択する
    */

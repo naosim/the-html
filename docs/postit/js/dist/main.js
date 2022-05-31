@@ -411,10 +411,16 @@ function toMap(list, idFunc) {
 }
 class DragPostitService {
     data;
+    startPos;
     mouseMovement;
     selectedPostits;
-    constructor(data2, postitViewRepository2){
+    constructor(data2, postitViewRepository2, commandCenter2){
         this.postitViewRepository = postitViewRepository2;
+        this.commandCenter = commandCenter2;
+        this.startPos = {
+            x: 0,
+            y: 0
+        };
         this.data = data2;
         this.mouseMovement = data2.mouseMovement;
         this.selectedPostits = data2.selectedPostits;
@@ -432,6 +438,10 @@ class DragPostitService {
         this.data.editingPostit = postit;
         this.mouseMovement.updateClientPos(clientX, clientY);
         this.data.editingLink.pos.updateWithPostit(postit);
+        this.startPos.x = postit.pos.x;
+        this.startPos.y = postit.pos.y;
+        console.log("start", postit.pos.x);
+        console.log("start", this.startPos.x);
     }
     onDragging(clientX, clientY, postit) {
         const movement = this.mouseMovement.updateClientPos(clientX, clientY);
@@ -439,9 +449,22 @@ class DragPostitService {
         this.data.editingLink.pos.updateWithPostit(postit);
     }
     onEndDrag(clientX, clientY, postit) {
-        console.log("onEndDrag", clientX, clientY);
+        console.log("end", this.startPos.x);
+        if (postit.pos.x == this.startPos.x && postit.pos.y == this.startPos.y) {
+            return;
+        }
+        console.log(this.selectedPostits.getSelectedIds());
+        this.commandCenter.movePostitsForUndo({
+            ids: this.selectedPostits.getSelectedIds(),
+            diff: {
+                diffX: postit.pos.x - this.startPos.x,
+                diffY: postit.pos.y - this.startPos.y
+            }
+        });
+        console.log("onEndDrag", postit.pos.x, postit.pos.y, this.startPos.x, this.startPos.y);
     }
     postitViewRepository;
+    commandCenter;
 }
 class SelectedPostits {
     values;
@@ -451,6 +474,9 @@ class SelectedPostits {
             dummyPostit2
         ];
         this.#map = {};
+    }
+    getSelectedIds() {
+        return this.values.map((v)=>v.id);
     }
     select(postit) {
         if (this.#map[postit.id]) {
@@ -643,17 +669,41 @@ var CommandType;
     CommandType1["addPostitCommand"] = "addPostitCommand";
     CommandType1["addPostitsAndLinks"] = "addPostitsAndLinks";
     CommandType1["deletePostitsAndLinks"] = "deletePostitsAndLinks";
+    CommandType1["movePostits"] = "movePostits";
 })(CommandType || (CommandType = {}));
 class CommandCenter {
     undoCommands;
+    currentIndex;
     constructor(postits, links){
         this.postits = postits;
         this.links = links;
         this.undoCommands = [];
+        this.currentIndex = -1;
     }
     invokeAndSaveUndoCommand(command) {
         const undoCommand = this.invoke(command);
-        this.undoCommands.push(undoCommand);
+        this.addUndoCommand(undoCommand);
+    }
+    addUndoCommand(command) {
+        this.undoCommands.slice(0, this.currentIndex + 1);
+        this.undoCommands.push(command);
+        this.currentIndex = this.undoCommands.length - 1;
+    }
+    undo() {
+        if (this.currentIndex < 0) {
+            throw new Error("undoできない");
+        }
+        const command = this.undoCommands[this.currentIndex];
+        this.invoke(command);
+        this.currentIndex--;
+    }
+    redo() {
+        if (this.currentIndex >= this.undoCommands.length - 1) {
+            throw new Error("redoできない");
+        }
+        const command = this.undoCommands[this.currentIndex + 1];
+        this.invoke(command);
+        this.currentIndex++;
     }
     invoke(command) {
         console.log("command", JSON.parse(JSON.stringify(command)));
@@ -749,6 +799,20 @@ class CommandCenter {
             };
             return undo;
         }
+        if (command.type == CommandType.movePostits) {
+            const c = command;
+            c.ids.forEach((id)=>this.postits.moveWithDiff(id, c.diff));
+            const undo = {
+                type: CommandType.movePostits,
+                timestamp: c.timestamp,
+                ids: c.ids,
+                diff: {
+                    diffX: -c.diff.diffX,
+                    diffY: -c.diff.diffY
+                }
+            };
+            return undo;
+        }
         throw new Error("command not found: " + command.type);
     }
     deleteLink(args) {
@@ -790,6 +854,26 @@ class CommandCenter {
             ...args
         };
         this.invokeAndSaveUndoCommand(c);
+    }
+    movePostits(args) {
+        const c = {
+            type: CommandType.movePostits,
+            timestamp: Date.now(),
+            ...args
+        };
+        this.invokeAndSaveUndoCommand(c);
+    }
+    movePostitsForUndo(args) {
+        const undo = {
+            type: CommandType.movePostits,
+            timestamp: Date.now(),
+            ids: args.ids,
+            diff: {
+                diffX: -args.diff.diffX,
+                diffY: -args.diff.diffY
+            }
+        };
+        this.addUndoCommand(undo);
     }
     postits;
     links;
@@ -850,8 +934,10 @@ const data = {
     textHeight: 20,
     refreshCount: 1,
     selectedLinks: new Selected(new DLink(dummyPostit1, dummyPostit1)),
-    shock: Date.now()
+    shock: Date.now(),
+    commandCenter: commandCenter
 };
+var dragPostitService = null;
 var app = new Vue({
     el: '#app',
     data: data,
@@ -892,7 +978,7 @@ var app = new Vue({
             return new TextIOService(data.postits, data.links);
         },
         getDragPostitService: function() {
-            return new DragPostitService(data, postitViewRepository);
+            return new DragPostitService(data, postitViewRepository, commandCenter);
         },
         dragMouseDownForLink: function(event1) {
             data.editingLink.startPostit = data.editingPostit;
@@ -928,20 +1014,23 @@ var app = new Vue({
             document.onmousemove = null;
         },
         dragMouseDown: function(event2, postit) {
-            this.getDragPostitService().onStartDrag(event2.clientX, event2.clientY, postit, event2);
+            dragPostitService = new DragPostitService(data, postitViewRepository, commandCenter);
+            dragPostitService.onStartDrag(event2.clientX, event2.clientY, postit, event2);
             data.selectedLinks.clear();
             document.querySelector("textarea").focus();
             event2.preventDefault();
             document.onmousemove = (event)=>this.elementDrag(event, postit);
-            document.onmouseup = (event)=>this.closeDragElement(event);
+            document.onmouseup = (event)=>this.closeDragElement(event, postit);
         },
         elementDrag: function(event, postit) {
-            this.getDragPostitService().onDragging(event.clientX, event.clientY, postit);
+            dragPostitService.onDragging(event.clientX, event.clientY, postit);
             event.preventDefault();
         },
-        closeDragElement: function(event) {
+        closeDragElement: function(event, postit) {
+            dragPostitService.onEndDrag(event.clientX, event.clientY, postit);
             document.onmouseup = null;
             document.onmousemove = null;
+            dragPostitService = null;
         },
         toEditMode: function(postit) {
             data.editingPostit = postit;
@@ -967,7 +1056,6 @@ var app = new Vue({
             });
         },
         calcSize: function() {
-            data.selectedPostits.clear();
             setTimeout(()=>{
                 data.postits.values.forEach((v, i)=>{
                     const postitView = postitViewRepository.find(v.id);
@@ -1030,6 +1118,9 @@ var app = new Vue({
                 return text + ' ';
             }
             return text;
+        },
+        undo () {
+            commandCenter.undo();
         }
     },
     mounted: function() {

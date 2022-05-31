@@ -1,6 +1,7 @@
 import { DPostit } from "./domain/postit/DPostit.ts";
 import { PostitView, PostitViewRepository } from "./PostitView.ts";
 import { EditingLinkPos } from "./EditingLinkPos.ts";
+import { CommandCenter } from "./command/Command.ts";
 
 export class DragPostitService {
   data: {
@@ -12,12 +13,13 @@ export class DragPostitService {
       isEditing: boolean
     }
   };
+  startPos = {x: 0, y: 0};
   /** @type MouseMovement */
   mouseMovement;
 
   /** @type SelectedPostits */
   selectedPostits;
-  constructor(data: any, private postitViewRepository: PostitViewRepository) {
+  constructor(data: any, private postitViewRepository: PostitViewRepository, private commandCenter: CommandCenter) {
     this.data = data;
     this.mouseMovement = data.mouseMovement;
     this.selectedPostits = data.selectedPostits;
@@ -41,6 +43,11 @@ export class DragPostitService {
 
     // link
     this.data.editingLink.pos.updateWithPostit(postit);
+
+    this.startPos.x = postit.pos.x;
+    this.startPos.y = postit.pos.y;
+    console.log("start", postit.pos.x);
+    console.log("start", this.startPos.x);
   }
 
   onDragging(clientX: number, clientY: number, postit: DPostit) {
@@ -51,6 +58,17 @@ export class DragPostitService {
     this.data.editingLink.pos.updateWithPostit(postit);
   }
   onEndDrag(clientX: number, clientY: number, postit: DPostit) {
-    console.log("onEndDrag", clientX, clientY);
+    console.log("end", this.startPos.x);
+    if(postit.pos.x == this.startPos.x && postit.pos.y == this.startPos.y) {
+      return;
+    }
+    console.log(this.selectedPostits.getSelectedIds());
+    this.commandCenter.movePostitsForUndo({
+      ids: this.selectedPostits.getSelectedIds(), 
+      diff: {
+        diffX: postit.pos.x - this.startPos.x,
+        diffY: postit.pos.y - this.startPos.y,
+      }})
+    console.log("onEndDrag", postit.pos.x, postit.pos.y, this.startPos.x, this.startPos.y);
   }
 }
