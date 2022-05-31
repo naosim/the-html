@@ -338,7 +338,7 @@ var app = new Vue({
     lineEndPos: function(): {x: number, y: number} {
       const postits = collisionChecker.findCollidedPostit(data.editingLink.pos).filter(v => v.id != data.editingLink.startPostit.id);
       console.log("lineEndPos", postits.length);
-      const pos = postits.length == 1 ? postits[0].pos : data.editingLink.pos;
+      const pos = postits.length == 1 ? postitViewRepository.find(postits[0].id).getCenter(postits[0]) : data.editingLink.pos;
       return {x: pos.x, y: pos.y} // 呼ばれるたびに新たなインスタンスを生成する。こうしないと最初の戻り値のインスタンスを永遠監視される。
     },
     postitAndViews: function() {

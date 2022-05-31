@@ -1188,7 +1188,7 @@ var app = new Vue({
         lineEndPos: function() {
             const postits = collisionChecker.findCollidedPostit(data.editingLink.pos).filter((v)=>v.id != data.editingLink.startPostit.id);
             console.log("lineEndPos", postits.length);
-            const pos = postits.length == 1 ? postits[0].pos : data.editingLink.pos;
+            const pos = postits.length == 1 ? postitViewRepository.find(postits[0].id).getCenter(postits[0]) : data.editingLink.pos;
             return {
                 x: pos.x,
                 y: pos.y
