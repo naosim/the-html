@@ -42,7 +42,7 @@ const data = {
   selectedPostits: new SelectedPostits(dummyPostit),
   editingLink: {
     startPostit: dummyPostit,
-    endPostit: dummyPostit,
+    endPostitPos: {x: 0, y: 0},
     pos: new EditingLinkPos(),
     isEditing: false
   },
@@ -104,7 +104,7 @@ var app = new Vue({
     },
     dragMouseDownForLink: function(event: any) {
       data.editingLink.startPostit = data.editingPostit;
-      data.editingLink.endPostit = dummyPostit;// ダミーをセットする
+      data.editingLink.endPostitPos = {x: 0, y: 0};// ダミーをセットする
       data.editingLink.isEditing = true;
 
       data.selectedLinks.clear();
@@ -125,9 +125,9 @@ var app = new Vue({
       event.preventDefault()
       const postits = collisionChecker.findCollidedPostit(data.editingLink.pos).filter(v => v.id != data.editingLink.startPostit.id)
       if(postits.length == 1) {
-        data.editingLink.endPostit = postits[0]
+        data.editingLink.endPostitPos = postits[0].pos
       } else {
-        data.editingLink.endPostit = dummyPostit;
+        data.editingLink.endPostitPos = {x: 0, y: 0};
       }
       data.editingLink.pos.x = event.clientX;
       data.editingLink.pos.y = event.clientY;
@@ -135,12 +135,16 @@ var app = new Vue({
 
     },
     closeLinkDrag: function(event: any) {
-      if(!PostitDummy.isDummy(data.editingLink.startPostit) && !PostitDummy.isDummy(data.editingLink.endPostit)) {
-        data.links.add(new DLink(
-          data.editingLink.startPostit,
-          data.editingLink.endPostit
-        ))
-        data.editingLink.pos.updateWithPostit(data.editingLink.startPostit);
+      if(!PostitDummy.isDummy(data.editingLink.startPostit)) {
+        const postits = collisionChecker.findCollidedPostit(data.editingLink.pos).filter(v => v.id != data.editingLink.startPostit.id);
+        if(postits.length == 1) {
+          data.links.add(new DLink(
+            data.editingLink.startPostit,
+            postits[0]
+          ))
+          data.editingLink.pos.updateWithPostit(data.editingLink.startPostit);
+        }
+        
       }
       document.onmouseup = null
       document.onmousemove = null
@@ -217,7 +221,7 @@ var app = new Vue({
       
       data.editingPostit = dummyPostit;
       data.editingLink.startPostit = dummyPostit;
-      data.editingLink.endPostit = dummyPostit;
+      data.editingLink.endPostitPos = {x: 0, y: 0};
       data.editingLink.pos.x = 0;
       data.editingLink.pos.y = 0;
       data.editingLink.isEditing = false;
@@ -332,11 +336,10 @@ var app = new Vue({
   },
   computed: {
     lineEndPos: function(): {x: number, y: number} {
-      // return {x: 0, y: 0};
-      if(PostitDummy.isDummy(data.editingLink.endPostit)) {
-        return data.editingLink.pos;
-      }
-      return postitViewRepository.find(data.editingLink.endPostit.id).getCenter(data.editingLink.endPostit);
+      const postits = collisionChecker.findCollidedPostit(data.editingLink.pos).filter(v => v.id != data.editingLink.startPostit.id);
+      console.log("lineEndPos", postits.length);
+      const pos = postits.length == 1 ? postits[0].pos : data.editingLink.pos;
+      return {x: pos.x, y: pos.y} // 呼ばれるたびに新たなインスタンスを生成する。こうしないと最初の戻り値のインスタンスを永遠監視される。
     },
     postitAndViews: function() {
       data.shock;// 更新を監視している

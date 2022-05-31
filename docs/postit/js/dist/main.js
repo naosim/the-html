@@ -919,7 +919,10 @@ const data = {
     selectedPostits: new SelectedPostits(dummyPostit1),
     editingLink: {
         startPostit: dummyPostit1,
-        endPostit: dummyPostit1,
+        endPostitPos: {
+            x: 0,
+            y: 0
+        },
         pos: new EditingLinkPos(),
         isEditing: false
     },
@@ -975,7 +978,10 @@ var app = new Vue({
         },
         dragMouseDownForLink: function(event1) {
             data.editingLink.startPostit = data.editingPostit;
-            data.editingLink.endPostit = dummyPostit1;
+            data.editingLink.endPostitPos = {
+                x: 0,
+                y: 0
+            };
             data.editingLink.isEditing = true;
             data.selectedLinks.clear();
             data.mouseMovement.updateClientPos(event1.clientX, event1.clientY);
@@ -989,18 +995,24 @@ var app = new Vue({
             event.preventDefault();
             const postits = collisionChecker.findCollidedPostit(data.editingLink.pos).filter((v)=>v.id != data.editingLink.startPostit.id);
             if (postits.length == 1) {
-                data.editingLink.endPostit = postits[0];
+                data.editingLink.endPostitPos = postits[0].pos;
             } else {
-                data.editingLink.endPostit = dummyPostit1;
+                data.editingLink.endPostitPos = {
+                    x: 0,
+                    y: 0
+                };
             }
             data.editingLink.pos.x = event.clientX;
             data.editingLink.pos.y = event.clientY;
             console.log(postits.length);
         },
         closeLinkDrag: function(event) {
-            if (!PostitDummy.isDummy(data.editingLink.startPostit) && !PostitDummy.isDummy(data.editingLink.endPostit)) {
-                data.links.add(new DLink(data.editingLink.startPostit, data.editingLink.endPostit));
-                data.editingLink.pos.updateWithPostit(data.editingLink.startPostit);
+            if (!PostitDummy.isDummy(data.editingLink.startPostit)) {
+                const postits = collisionChecker.findCollidedPostit(data.editingLink.pos).filter((v)=>v.id != data.editingLink.startPostit.id);
+                if (postits.length == 1) {
+                    data.links.add(new DLink(data.editingLink.startPostit, postits[0]));
+                    data.editingLink.pos.updateWithPostit(data.editingLink.startPostit);
+                }
             }
             document.onmouseup = null;
             document.onmousemove = null;
@@ -1071,7 +1083,10 @@ var app = new Vue({
             this.getPostitService().clearAll();
             data.editingPostit = dummyPostit1;
             data.editingLink.startPostit = dummyPostit1;
-            data.editingLink.endPostit = dummyPostit1;
+            data.editingLink.endPostitPos = {
+                x: 0,
+                y: 0
+            };
             data.editingLink.pos.x = 0;
             data.editingLink.pos.y = 0;
             data.editingLink.isEditing = false;
@@ -1171,10 +1186,13 @@ var app = new Vue({
     },
     computed: {
         lineEndPos: function() {
-            if (PostitDummy.isDummy(data.editingLink.endPostit)) {
-                return data.editingLink.pos;
-            }
-            return postitViewRepository.find(data.editingLink.endPostit.id).getCenter(data.editingLink.endPostit);
+            const postits = collisionChecker.findCollidedPostit(data.editingLink.pos).filter((v)=>v.id != data.editingLink.startPostit.id);
+            console.log("lineEndPos", postits.length);
+            const pos = postits.length == 1 ? postits[0].pos : data.editingLink.pos;
+            return {
+                x: pos.x,
+                y: pos.y
+            };
         },
         postitAndViews: function() {
             data.shock;
