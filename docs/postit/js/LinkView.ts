@@ -17,14 +17,30 @@ export class LinkView {
       return this.endPostitView.center
     }
     return calcCollisionPoint(
-      this.startPostitView.center, {pos: this.endPostit.pos, size: this.endPostitView.size});
+      {
+        x: this.startPostit.pos.x + this.startPostitView.size.width / 2,
+        y: this.startPostit.pos.y + this.startPostitView.size.height / 2
+      }, 
+      {
+        pos: this.endPostit.pos, size: this.endPostitView.size
+      });
   }
 
   getStartPoint() {
     if(this.startPostitView.size.width == 0 || this.startPostitView.size.height == 0) {
       return this.startPostitView.center
     }
-    return calcCollisionPoint(this.endPostitView.center, {pos: this.startPostit.pos, size: this.startPostitView.size});
+    return calcCollisionPoint(
+      {
+        x: this.endPostit.pos.x + this.endPostitView.size.width / 2,
+        y: this.endPostit.pos.y + this.endPostitView.size.height / 2
+      },
+      // this.endPostitView.center, 
+      {
+        pos: this.startPostit.pos, 
+        size: this.startPostitView.size
+      }
+    );
   }
 
 }
