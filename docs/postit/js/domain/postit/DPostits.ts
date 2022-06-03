@@ -1,8 +1,9 @@
 import { DLinks } from "../link/DLinks.ts";
 import { DLink } from "../link/DLink.ts";
 import { DPostit } from "./DPostit.ts";
+import { DPostitsRef } from "./DPostitsRef.ts";
 
-export class DPostits {
+export class DPostits implements DPostitsRef {
   readonly #map: {[key: string]: DPostit};
   constructor(
     public values: DPostit[],

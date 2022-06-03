@@ -11,7 +11,8 @@ export class DragPostitService {
       endPostit: DPostit,
       pos: EditingLinkPos,
       isEditing: boolean
-    }
+    },
+    shock: number
   };
   startPos = {x: 0, y: 0};
   /** @type MouseMovement */
@@ -27,10 +28,11 @@ export class DragPostitService {
 
   onStartDrag(clientX: number, clientY: number, postit: DPostit, event: any) {
     if(event.shiftKey) {
-      this.selectedPostits.select(postit);  
+      this.selectedPostits.select(postit);
     } else {
       this.selectedPostits.selectOne(postit);
     }
+    this.data.shock = Date.now();
 
     if(this.data.editingPostit.id != postit.id) {
       // this.postitViewRepository.find(this.data.editingPostit.id).updateCenter(this.data.editingPostit);

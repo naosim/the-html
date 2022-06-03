@@ -73,6 +73,13 @@ export class PostitService {
     this.commandCenter.deletePostit({postitId: targetPostit.id});
   }
 
+  deletePostits(postits: DPostit[]) {
+    this.commandCenter.deletePostitsAndLinks({
+      postitIds: postits.map(v => v.id),
+      links: []
+    })
+  }
+
   move(postit: DPostit, x: number, y: number) {
     this.postits.move(postit.id, {x, y})
   }

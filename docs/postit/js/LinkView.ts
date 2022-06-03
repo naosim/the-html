@@ -37,7 +37,3 @@ export class LinkView {
   }
 
 }
-
-// class LinkViews {
-//   find(linkId: string) {}
-// }

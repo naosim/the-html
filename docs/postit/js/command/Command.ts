@@ -194,6 +194,21 @@ export class CommandCenter {
     };
     this.invokeAndSaveUndoCommand(c);
   }
+
+  /**
+   * 付箋とリンクを削除する。
+   * 付箋に紐づくリンクは自動的に削除される。
+   * @param args 
+   */
+  deletePostitsAndLinks(args: DeletePostitsAndLinksArgs) {
+    const c: DeletePostitsAndLinksCommand = {
+      type: CommandType.deletePostitsAndLinks, 
+      timestamp: Date.now(), 
+      ...args
+    };
+    this.invokeAndSaveUndoCommand(c);
+  }
+
   movePostits(args: MovePostitsArgs) {
     const c : MovePostitsCommand = {
       type: CommandType.movePostits,

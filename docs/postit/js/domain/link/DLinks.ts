@@ -16,8 +16,16 @@ export class DLinks {
   }
 
   add(link: DLink) {
+    if(this.#uniqMap[link.id]) {
+      throw new Error("既に追加済みのリンク");
+    }
     this.values.push(link);
     this.updateMap();
+  }
+
+  has(startPostitId: string, endPostitId: string): boolean {
+    const id = DLink.uniqIdFromId(startPostitId, endPostitId);
+    return !!this.#uniqMap[id]
   }
 
   /**

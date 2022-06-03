@@ -96,7 +96,7 @@
         v-bind:height="postitAndView.postitView.size.height"
         fill="#ffa"
         stroke="#888"
-        v-bind:stroke-width="selectedPostits.values.length > 0 && selectedPostits.isSelected(postitAndView.postit) ? 4 : 1"
+        v-bind:stroke-width="postitAndView.isSelected ? 4 : 1"
       />
       <text
         stroke="none" 
@@ -109,7 +109,7 @@
         v-text="text"
       ></text>
     </g>
-
+<!-- 
     <path 
       v-for="link in links.values" 
       v-if="getPostitView(link.startPostit.id).isDiv"
@@ -119,6 +119,16 @@
       v-bind:stroke="selectedLinks.isSelected(link) ? '#e41' : '#555'" 
       stroke-width="4" 
       v-bind:marker-end="selectedLinks.isSelected(link) ? 'url(#m_ar_selected)' : 'url(#m_ar)'" marker-end-fill="red"
+    /> -->
+    <path 
+      v-for="linkArrow in linkArrows" 
+      v-if="linkArrow.hasStartPostitDiv"
+      v-bind:d="linkArrow.path" 
+      v-on:click="clickLine($event, linkArrow.link)"
+      fill="none" 
+      v-bind:stroke="linkArrow.isSelected ? '#e41' : '#555'" 
+      stroke-width="4" 
+      v-bind:marker-end="linkArrow.isSelected ? 'url(#m_ar_selected)' : 'url(#m_ar)'" marker-end-fill="red"
     />
   </svg>
   

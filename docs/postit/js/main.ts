@@ -17,6 +17,20 @@ declare var document: any;
 declare var window: any;
 declare var Vue: any;
 
+class EditingLink {
+  startPostit: DPostit = dummyPostit;
+  endPostitPos = {x: 0, y: 0};
+  pos = new EditingLinkPos();
+  isEditing = false;
+
+  clear() {
+    this.startPostit = dummyPostit;
+    this.endPostitPos = {x: 0, y: 0};
+    this.pos = new EditingLinkPos();
+    this.isEditing = false;
+  }
+}
+
 const dummyPostit = PostitDummy.instance();
 
 const rawData = {
@@ -40,18 +54,14 @@ const data = {
   mouseMovement: new MouseMovement(),
   ...postitsAndLinks,
   selectedPostits: new SelectedPostits(dummyPostit),
-  editingLink: {
-    startPostit: dummyPostit,
-    endPostitPos: {x: 0, y: 0},
-    pos: new EditingLinkPos(),
-    isEditing: false
-  },
+  editingLink: new EditingLink(),
   editingPostit: dummyPostit,
   isFocusForText: false,
   textHeight: 20, // 定数
   refreshCount: 1,
   selectedLinks: new Selected(new DLink(dummyPostit, dummyPostit)),
   shock: Date.now(),
+  linkShock: Date.now(),
   commandCenter: commandCenter
 };
 
@@ -63,9 +73,6 @@ var app = new Vue({
   methods: {
     getPostitAndViews: function() {
       const result = data.postits.values.map(v => ({postit: v, postitView: postitViewRepository.find(v.id)}));
-      
-      console.log("getPostitAndViews", result.length);
-      // result.forEach(v => console.log(v.postitView.size.width))
       return result;
     },
     getPostitView: function(postitId: string) {
@@ -78,9 +85,9 @@ var app = new Vue({
       } else {
         data.selectedLinks.selectOne(link);
       }
-      console.log(data.selectedLinks.values.length);
       data.isFocusForText = false;
       data.selectedPostits.clear();
+      data.linkShock = Date.now();
     },
     getLinePath: function(link: DLink) {
       const linkView: LinkView = new LinkView(
@@ -111,11 +118,7 @@ var app = new Vue({
 
       // get the mouse cursor position at startup:
       data.mouseMovement.updateClientPos(event.clientX, event.clientY);
-
-      /** @type Postit[] */
-      const postits = data.postits.values;
-      // postits.forEach(v => postitViewRepository.find(v.id).updateCenter(v))
-      collisionChecker = new CollisionChecker(postits, postitViewRepository);
+      collisionChecker = new CollisionChecker(data.postits.values, postitViewRepository);
 
       event.preventDefault()
       document.onmousemove = (event: any) => this.linkDrag(event);
@@ -131,21 +134,23 @@ var app = new Vue({
       }
       data.editingLink.pos.x = event.clientX;
       data.editingLink.pos.y = event.clientY;
-      console.log(postits.length);
 
     },
     closeLinkDrag: function(event: any) {
-      if(!PostitDummy.isDummy(data.editingLink.startPostit)) {
-        const postits = collisionChecker.findCollidedPostit(data.editingLink.pos).filter(v => v.id != data.editingLink.startPostit.id);
-        if(postits.length == 1) {
-          data.links.add(new DLink(
-            data.editingLink.startPostit,
-            postits[0]
-          ))
+      // if(!PostitDummy.isDummy(data.editingLink.startPostit)) {
+      const postits = collisionChecker.findCollidedPostit(data.editingLink.pos).filter(v => v.id != data.editingLink.startPostit.id);
+      if(postits.length == 1) {
+        const startPostitId = data.editingLink.startPostit.id;
+        const endPostitId = postits[0].id;
+        if(!data.links.has(startPostitId, endPostitId)) {
+          commandCenter.addLink({startPostitId, endPostitId});
           data.editingLink.pos.updateWithPostit(data.editingLink.startPostit);
+        } else {
+          console.log("linkが重複");
         }
-        
       }
+        
+      // }
       document.onmouseup = null
       document.onmousemove = null
     },
@@ -200,31 +205,22 @@ var app = new Vue({
           const div: any = (this as any).$refs.postit[i];
           postitView.updateSize(div, v);
         })
-        console.log("updateSize");
         data.shock = Date.now();
       }, 1); // ちょっと待てばdivが作られるだろうって発想
     },
     deletePostit: function() {
-      console.log("delete");
       if(PostitDummy.isDummy(data.editingPostit)) {
         return;
       }
-      data.selectedPostits.values.forEach(v => this.getPostitService().deletePostit(v));
-      // this.getPostitService().deletePostit(this.$data.editingPostit)
-
+      this.getPostitService().deletePostits(data.selectedPostits.values);
       data.editingPostit = dummyPostit;
       this.calcSize();
     },
     
     clear: function() {
       this.getPostitService().clearAll();
-      
       data.editingPostit = dummyPostit;
-      data.editingLink.startPostit = dummyPostit;
-      data.editingLink.endPostitPos = {x: 0, y: 0};
-      data.editingLink.pos.x = 0;
-      data.editingLink.pos.y = 0;
-      data.editingLink.isEditing = false;
+      data.editingLink.clear();
       data.isFocusForText = false;
       data.selectedPostits.clear();
     },
@@ -252,7 +248,6 @@ var app = new Vue({
         }
         
       }, 1)
-      
     },
     toDisplayText(text: string) {
       if(text.length == 0) {
@@ -281,8 +276,6 @@ var app = new Vue({
       }
       this.updateEditingPostitSize();
     }, 1000)
-    // this.$refs.textarea.addEventListener('compositionend', () => this.$data.postits.forEach((v, i) => v.setDiv(this.$refs.postit[i])));
-    // this.$refs.textarea.addEventListener('compositionend', () => this.$data.postits.forEach((v, i) => v.setDiv(this.$refs.postit[i])));
 
     console.log("mounted");
     document.addEventListener('keydown', (event: any) => {
@@ -301,7 +294,11 @@ var app = new Vue({
         if(!this.$data.isFocusForText && this.$data.selectedPostits.isNoSelected()) {
           console.log("delete link");
           console.log(confirm("矢印を削除します。よろしいですか？"));
-          data.selectedLinks.forEach(v => this.$data.links.delete(v.id))
+          commandCenter.deletePostitsAndLinks({
+            postitIds: [],
+            links: data.selectedLinks.values.map(v => v as DLink).map(v =>({startPostitId: v.startPostit.id, endPostitId: v.endPostit.id}))
+          })
+          // data.selectedLinks.forEach(v => this.$data.links.delete(v.id))
           data.selectedLinks.clear();
         }
       }
@@ -309,6 +306,9 @@ var app = new Vue({
       if(event.code == "Esc") {
         this.$data.editingPostit = dummyPostit;
         this.$data.editingLink.isEditing = false;
+        data.selectedLinks.clear();
+        data.selectedPostits.clear();
+        this.data.shock = Date.now();
       }
 
       
@@ -335,18 +335,38 @@ var app = new Vue({
 
   },
   computed: {
+    linkArrows: function() {
+      data.linkShock;
+      console.log("linkArrows");
+      return data.links.values.map(link => {
+        const linkView: LinkView = new LinkView(
+          link.startPostit,
+          link.endPostit,
+          postitViewRepository.find(link.startPostit.id),
+          postitViewRepository.find(link.endPostit.id)
+        );
+        const s = linkView.getStartPoint();
+        const e = linkView.getEndPoint();
+        return {
+          link: link,
+          path: `M${s.x},${s.y} L${e.x},${e.y}`,
+          isSelected: (this as any).selectedLinks.isSelected(link),
+          hasStartPostitDiv: postitViewRepository.find(link.startPostit.id).isDiv
+        }
+      })
+    },
     lineEndPos: function(): {x: number, y: number} {
       const postits = collisionChecker.findCollidedPostit(data.editingLink.pos).filter(v => v.id != data.editingLink.startPostit.id);
-      console.log("lineEndPos", postits.length);
       const pos = postits.length == 1 ? postitViewRepository.find(postits[0].id).getCenter(postits[0]) : data.editingLink.pos;
       return {x: pos.x, y: pos.y} // 呼ばれるたびに新たなインスタンスを生成する。こうしないと最初の戻り値のインスタンスを永遠監視される。
     },
     postitAndViews: function() {
       data.shock;// 更新を監視している
-      const result = data.postits.values.map(v => ({postit: v, postitView: postitViewRepository.find(v.id)}));
-      
-      // console.log("getPostitAndViews", result.length);
-      // result.forEach(v => console.log(v.postitView.size.width))
+      const result = data.postits.values.map(v => ({
+        postit: v, postitView: postitViewRepository.find(v.id),
+        isSelected: data.selectedPostits.isSelected(v.id)
+      }));
+      console.log("postitAndViews");
       return result;
     }
   }
